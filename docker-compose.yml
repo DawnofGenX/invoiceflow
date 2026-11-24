@@ -1,0 +1,35 @@
+services:
+  backend:
+    build: ./backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: sqlite:////app/data/invoiceflow.db
+      OPENCODE_BASE_URL: ${OPENCODE_BASE_URL:-https://opencode.ai/zen/go/v1}
+      OPENCODE_API_KEY: ${OPENCODE_API_KEY:?set OPENCODE_API_KEY in .env}
+      OPENCODE_SESSION: ${OPENCODE_SESSION:-invoiceflow-prod}
+      LLM_VISION_MODEL: ${LLM_VISION_MODEL:-deepseek-v4.1-flash}
+      LLM_REASONING_MODEL: ${LLM_REASONING_MODEL:-deepseek-v4-pro}
+      LLM_CLASSIFY_MODEL: ${LLM_CLASSIFY_MODEL:-qwen3.8-flash}
+      TESSERACT_PATH: /usr/bin/tesseract
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+      SECRET_KEY: ${SECRET_KEY:-change-me}
+    volumes:
+      - invoiceflow-data:/app/data
+
+  frontend:
+    build: ./frontend
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+      - frontend
+
+volumes:
+  invoiceflow-data:

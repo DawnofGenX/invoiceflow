@@ -22,7 +22,7 @@ out/
 .turbo/
 .yarn/
 pnpm-lock.yaml
-package-lock.json
+*.tsbuildinfo
 
 # Env / secrets
 .env
@@ -30,6 +30,11 @@ package-lock.json
 .env.*.local
 *.pem
 *.key
+
+# Data
+*.db
+*.sqlite
+*.sqlite3
 
 # OS
 .DS_Store
