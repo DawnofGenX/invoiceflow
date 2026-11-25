@@ -1,36 +1,150 @@
 @import "tailwindcss";
 
-:root {
-  --background: #09090b;
-  --foreground: #f4f4f5;
+/* InvoiceFlow — Confirmation Slip.
+   Pale print ground, ink-green shell, one live signal colour.
+   Colour is reserved for state; the page is otherwise ink on paper. */
+@theme {
+  --color-print: #f2f2ea;
+  --color-print-2: #e9e9df;
+  --color-slip: #fbfbf5;
+  --color-ink: #0f1e1b;
+  --color-ink-soft: #1e312d;
+  --color-ink-mute: #46554f;
+  --color-rail-text: #a9bab3;
+  --color-rule: #d5d7ca;
+  --color-rule-firm: #b3b7a8;
+  /* Control boundaries need 3:1 against the paper (WCAG 1.4.11). */
+  --color-field: #7c8375;
+  --color-settled: #2a6350;
+  --color-settled-soft: #dce6df;
+  --color-hold: #8a5b10;
+  --color-hold-soft: #efe5cb;
+  --color-void: #a23a22;
+  --color-void-soft: #f1dad2;
+  --color-signal: #b4481f;
+
+  --font-sans: var(--font-archivo), system-ui, sans-serif;
+  --font-mono: var(--font-sometype), ui-monospace, monospace;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+:root {
+  color-scheme: light;
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-sans), system-ui, sans-serif;
+  background: #f2f2ea;
+  color: #0f1e1b;
+  font-family: var(--font-archivo), system-ui, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
-/* subtle scrollbar for the dark theme */
+/* Browser surfaces carry the world too. */
+::selection {
+  background: #2a6350;
+  color: #fbfbf5;
+}
+
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: 2px solid #0f1e1b;
+  outline-offset: 2px;
+}
+
+input,
+textarea,
+select {
+  caret-color: #b4481f;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #b3b7a8 #f2f2ea;
+}
+
 ::-webkit-scrollbar {
   width: 10px;
   height: 10px;
 }
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f2f2ea;
 }
 ::-webkit-scrollbar-thumb {
-  background: #3f3f46;
-  border-radius: 5px;
-  border: 2px solid #09090b;
+  background: #b3b7a8;
+  border: 2px solid #f2f2ea;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #52525b;
+
+/* Registers and slips: every numeral is mono and tabular. */
+.num {
+  font-family: var(--font-sometype), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Micro label: mono, tracked caps. */
+.micro {
+  font-family: var(--font-sometype), ui-monospace, monospace;
+  font-size: 10.5px;
+  line-height: 1.2;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #46554f;
+}
+
+/* The one authored motion: a line prints into its fixed cells. */
+@keyframes print-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+.printed {
+  animation: print-in 240ms steps(12, end) both;
+}
+
+@keyframes lamp-live {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.25;
+  }
+}
+
+.lamp-live {
+  animation: lamp-live 1.2s steps(2, end) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .printed,
+  .lamp-live {
+    animation: none;
+  }
+  * {
+    transition-duration: 1ms !important;
+  }
+}
+
+/* Ruled field grid: the slip's fixed cells. */
+.fieldgrid {
+  display: grid;
+  grid-template-columns: 92px minmax(0, 1fr);
+}
+.fieldgrid > dt {
+  border-bottom: 1px solid #d5d7ca;
+  padding: 5px 0;
+}
+.fieldgrid > dd {
+  border-bottom: 1px solid #d5d7ca;
+  padding: 5px 0;
+  margin: 0;
+  min-width: 0;
 }

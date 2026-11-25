@@ -8,15 +8,16 @@ import {
   fmtConfidence,
   fmtDateTime,
   fmtMoney,
+  fmtStamp,
+  shortRef,
 } from "@/lib/format";
-import StatCard from "@/components/StatCard";
 
-function RuleChip({ rule }: { rule: string | null }) {
-  if (!rule) return <span className="text-xs text-zinc-600">—</span>;
+function LedgerCell({ label, value }: { label: string; value: string }) {
   return (
-    <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 font-mono text-[11px] text-emerald-300 ring-1 ring-inset ring-emerald-500/25">
-      {rule}
-    </span>
+    <div className="min-w-0 px-4 py-2.5">
+      <p className="micro">{label}</p>
+      <p className="num mt-1 text-[16px] leading-none text-ink">{value}</p>
+    </div>
   );
 }
 
@@ -24,31 +25,40 @@ function Bar({
   label,
   count,
   max,
-  tone = "emerald",
+  sub,
 }: {
   label: string;
   count: number;
   max: number;
-  tone?: "emerald" | "blue";
+  sub?: string;
 }) {
-  const pct = max > 0 ? Math.max((count / max) * 100, 3) : 0;
-  const fill = tone === "blue" ? "bg-blue-500/70" : "bg-emerald-500/70";
+  const pct = max > 0 ? Math.max((count / max) * 100, 2) : 0;
   return (
-    <div className="flex items-center gap-3">
-      <span className="w-44 shrink-0 truncate font-mono text-xs text-zinc-400" title={label}>
+    <div className="grid grid-cols-[minmax(120px,180px)_minmax(0,1fr)_40px] items-center gap-3 border-b border-rule px-4 py-[7px] last:border-0">
+      <span className="num truncate text-[11.5px] text-ink" title={label}>
         {label}
       </span>
-      <div className="h-2 flex-1 overflow-hidden rounded-full bg-zinc-800">
-        <div className={`h-full rounded-full ${fill}`} style={{ width: `${pct}%` }} />
-      </div>
-      <span className="w-8 shrink-0 text-right text-xs tabular-nums text-zinc-400">
+      <span
+        className="flex h-[6px] items-center"
+        role="presentation"
+        aria-hidden="true"
+      >
+        <span className="h-[6px] w-full max-w-full bg-rule/70">
+          <span
+            className="block h-[6px] bg-ink/75"
+            style={{ width: `${pct}%` }}
+          />
+        </span>
+      </span>
+      <span className="num text-right text-[11.5px] text-ink-mute">
         {count}
+        {sub ? <span className="ml-1 text-[10px]">{sub}</span> : null}
       </span>
     </div>
   );
 }
 
-export default function TransparencyPage() {
+export default function EvidencePage() {
   const [summary, setSummary] = useState<AuditSummary | null>(null);
   const [vendors, setVendors] = useState<VendorRow[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -70,9 +80,15 @@ export default function TransparencyPage() {
 
   if (error) {
     return (
-      <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-6 text-sm text-red-300">
-        Failed to load the transparency report.
-        <pre className="mt-2 whitespace-pre-wrap text-xs text-red-400">{error}</pre>
+      <div className="mx-auto max-w-[1440px] px-5 py-10 sm:px-8">
+        <div className="border border-void/40 bg-void-soft p-5">
+          <p className="text-[12.5px] font-medium text-void">
+            The evidence ledger could not be read.
+          </p>
+          <pre className="num mt-2 whitespace-pre-wrap text-[11px] text-void/90">
+            {error}
+          </pre>
+        </div>
       </div>
     );
   }
@@ -81,184 +97,227 @@ export default function TransparencyPage() {
   const maxAgent = Math.max(1, ...Object.values(summary?.by_agent ?? { x: 0 }));
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
-          Transparency report
+    <div className="mx-auto max-w-[1440px] px-5 sm:px-8">
+      <div className="pt-6">
+        <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">
+          Evidence
         </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Every agent decision across the whole ledger — what was decided, how
-          confident it was, and which rule made the call.
+        <p className="mt-1 max-w-[66ch] text-[13px] text-ink-mute">
+          The whole decision record, across every invoice: what was decided, which
+          rule fired, and how sure the agent was. This is the part other AP tools
+          leave out.
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          label="Decisions logged"
-          value={summary?.total_decisions ?? "—"}
-          hint={
-            summary ? `${summary.decisions_per_invoice} per invoice` : undefined
-          }
+      <div className="mt-5 grid grid-cols-2 divide-x divide-rule border-y border-rule sm:grid-cols-3 lg:grid-cols-5">
+        <LedgerCell
+          label="Decisions"
+          value={summary ? String(summary.total_decisions) : "—"}
         />
-        <StatCard
-          label="Automation rate"
+        <LedgerCell
+          label="Per invoice"
+          value={summary ? summary.decisions_per_invoice.toFixed(1) : "—"}
+        />
+        <LedgerCell
+          label="Automation"
           value={
             summary ? `${Math.round(summary.automation_rate * 100)}%` : "—"
           }
-          tone="emerald"
-          hint={
-            summary
-              ? `${summary.automated_invoices} of ${summary.total_invoices} straight through`
-              : undefined
-          }
         />
-        <StatCard
+        <LedgerCell
           label="Avg confidence"
           value={fmtConfidence(summary?.avg_confidence ?? null)}
-          tone="blue"
-          hint="across every recorded decision"
         />
-        <StatCard
+        <LedgerCell
           label="Low confidence"
-          value={summary?.low_confidence_count ?? "—"}
-          tone="amber"
-          hint={
-            summary
-              ? `below ${Math.round(summary.low_confidence_threshold * 100)}% · flagged for humans`
-              : undefined
-          }
+          value={summary ? String(summary.low_confidence_count) : "—"}
         />
       </div>
+      {summary && (
+        <p className="num mt-1.5 text-[10.5px] text-ink-mute">
+          {summary.automated_invoices} of {summary.total_invoices} invoices went
+          straight through · {summary.human_review_invoices} reached a human ·
+          low confidence means below{" "}
+          {Math.round(summary.low_confidence_threshold * 100)}%
+        </p>
+      )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
-        <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h2 className="text-sm font-semibold text-zinc-200">Rules that fired</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            The exact control behind each decision. This is the part other AP tools
-            don&apos;t record.
-          </p>
-          <div className="mt-4 space-y-2.5">
+      <div className="mt-7 grid gap-5 lg:grid-cols-2">
+        <section className="self-start border border-rule-firm bg-slip">
+          <header className="border-b border-ink px-4 py-2.5">
+            <h2 className="text-[12.5px] font-semibold text-ink">
+              Rules that fired
+            </h2>
+            <p className="mt-0.5 text-[11px] text-ink-mute">
+              The control behind each decision, counted.
+            </p>
+          </header>
+          <div>
             {(summary?.rules_fired ?? []).map((r) => (
               <Bar key={r.rule} label={r.rule} count={r.count} max={maxRule} />
             ))}
             {summary && summary.rules_fired.length === 0 && (
-              <p className="text-xs text-zinc-500">No rules have fired yet.</p>
+              <p className="px-4 py-6 text-[12px] text-ink-mute">
+                No rule has fired yet. Send an invoice through intake.
+              </p>
             )}
           </div>
         </section>
 
-        <section className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-5">
-          <h2 className="text-sm font-semibold text-zinc-200">Decisions by agent</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            How much of the pipeline each agent owns.
-          </p>
-          <div className="mt-4 space-y-2.5">
+        <section className="self-start border border-rule-firm bg-slip">
+          <header className="border-b border-ink px-4 py-2.5">
+            <h2 className="text-[12.5px] font-semibold text-ink">
+              Decisions by agent
+            </h2>
+            <p className="mt-0.5 text-[11px] text-ink-mute">
+              Where the work actually happens in the pipeline.
+            </p>
+          </header>
+          <div>
             {Object.entries(summary?.by_agent ?? {}).map(([agent, count]) => (
               <Bar
                 key={agent}
                 label={agentLabel(agent)}
                 count={count}
                 max={maxAgent}
-                tone="blue"
               />
             ))}
           </div>
         </section>
       </div>
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/50">
-        <div className="border-b border-zinc-800 px-5 py-4">
-          <h2 className="text-sm font-semibold text-zinc-200">Recent decisions</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            Newest first. Each row is one audit entry, verbatim.
-          </p>
-        </div>
-        <ul className="divide-y divide-zinc-800/70">
+      <section className="mt-6 border border-rule-firm bg-slip">
+        <header className="flex items-baseline justify-between border-b border-ink px-4 py-2.5">
+          <div>
+            <h2 className="text-[12.5px] font-semibold text-ink">
+              Recent decisions
+            </h2>
+            <p className="mt-0.5 text-[11px] text-ink-mute">
+              Newest first, verbatim. Every line is a printed cell in its
+              invoice&apos;s record.
+            </p>
+          </div>
+          <span className="num text-[10.5px] text-ink-mute">
+            {summary?.recent.length ?? 0} shown
+          </span>
+        </header>
+        <ol>
           {(summary?.recent ?? []).map((d) => (
-            <li key={d.id} className="px-5 py-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="rounded-md bg-zinc-800 px-2 py-0.5 text-[11px] font-medium text-zinc-300">
+            <li
+              key={d.id}
+              className="border-b border-rule px-4 py-2.5 last:border-0"
+            >
+              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink">
                   {agentLabel(d.agent)}
                 </span>
-                <span className="font-mono text-[11px] text-zinc-500">{d.action}</span>
-                <RuleChip rule={d.rule_fired} />
-                <span className="ml-auto flex items-center gap-2 text-[11px] text-zinc-500">
-                  <span className="tabular-nums">{fmtConfidence(d.confidence)}</span>
-                  <span>{d.duration_ms} ms</span>
-                  <span>{fmtDateTime(d.created_at)}</span>
+                <span className="num text-[10.5px] text-ink-mute">{d.action}</span>
+                {d.rule_fired && (
+                  <span className="num rounded-[2px] border border-rule-firm px-1.5 py-[1px] text-[10px] text-ink">
+                    {d.rule_fired}
+                  </span>
+                )}
+                <span className="num ml-auto whitespace-nowrap text-[10.5px] text-ink-mute">
+                  {fmtConfidence(d.confidence)} · {d.duration_ms} ms ·{" "}
+                  {fmtDateTime(d.created_at)}
                 </span>
               </div>
-              <p className="mt-2 text-sm leading-relaxed text-zinc-300">{d.reasoning}</p>
-              <p className="mt-1.5 text-xs text-zinc-500">
+              <p className="mt-1.5 max-w-[86ch] text-[12.5px] leading-[1.55] text-ink-soft">
+                {d.reasoning}
+              </p>
+              <p className="mt-1 text-[10.5px] text-ink-mute">
                 <Link
                   href={`/invoices/${d.invoice_id}`}
-                  className="text-emerald-400 hover:underline"
+                  className="num text-ink underline decoration-rule-firm underline-offset-4 hover:decoration-ink"
                 >
-                  {d.invoice_number || "invoice"}
-                </Link>{" "}
-                · {d.vendor_name || "unknown vendor"}
+                  {d.invoice_number || shortRef(d.invoice_id)}
+                </Link>
+                {" · "}
+                {d.vendor_name || "unknown vendor"}
               </p>
             </li>
           ))}
           {summary && summary.recent.length === 0 && (
-            <li className="px-5 py-8 text-center text-sm text-zinc-500">
-              Nothing recorded yet — upload an invoice.
+            <li className="px-4 py-8 text-center text-[12.5px] text-ink-mute">
+              Nothing recorded yet — intake an invoice to start the record.
             </li>
           )}
-        </ul>
+        </ol>
       </section>
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/50">
-        <div className="border-b border-zinc-800 px-5 py-4">
-          <h2 className="text-sm font-semibold text-zinc-200">Vendors</h2>
-          <p className="mt-1 text-xs text-zinc-500">
-            A supplier with no settled history is what forces manual verification.
+      <section className="mt-6 border border-rule-firm bg-slip">
+        <header className="border-b border-ink px-4 py-2.5">
+          <h2 className="text-[12.5px] font-semibold text-ink">Vendors</h2>
+          <p className="mt-0.5 text-[11px] text-ink-mute">
+            A supplier with no settled history is exactly what forces manual
+            verification.
           </p>
-        </div>
+        </header>
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm">
+          <table className="w-full min-w-[640px] border-collapse text-left">
             <thead>
-              <tr className="border-b border-zinc-800 text-xs uppercase tracking-wider text-zinc-500">
-                <th className="px-5 py-3 font-medium">Vendor</th>
-                <th className="px-5 py-3 font-medium">Invoices</th>
-                <th className="px-5 py-3 font-medium">Settled</th>
-                <th className="px-5 py-3 font-medium">Total value</th>
-                <th className="px-5 py-3 font-medium">History</th>
+              <tr className="border-b border-rule">
+                <th scope="col" className="micro px-4 py-2 font-medium">
+                  Vendor
+                </th>
+                <th scope="col" className="micro px-4 py-2 text-right font-medium">
+                  Invoices
+                </th>
+                <th scope="col" className="micro px-4 py-2 text-right font-medium">
+                  Settled
+                </th>
+                <th scope="col" className="micro px-4 py-2 text-right font-medium">
+                  Value
+                </th>
+                <th scope="col" className="micro px-4 py-2 text-right font-medium">
+                  Last seen
+                </th>
+                <th scope="col" className="micro px-4 py-2 font-medium">
+                  History
+                </th>
               </tr>
             </thead>
             <tbody>
               {vendors.map((v) => (
-                <tr
-                  key={v.vendor_name}
-                  className="border-b border-zinc-800/60 last:border-0 hover:bg-zinc-800/30"
-                >
-                  <td className="px-5 py-3 text-zinc-200">{v.vendor_name}</td>
-                  <td className="px-5 py-3 tabular-nums text-zinc-400">
+                <tr key={v.vendor_name} className="border-b border-rule last:border-0">
+                  <td className="px-4 py-[7px] text-[12.5px] text-ink">
+                    {v.vendor_name}
+                  </td>
+                  <td className="num px-4 py-[7px] text-right text-[11.5px] text-ink-mute">
                     {v.invoice_count}
                   </td>
-                  <td className="px-5 py-3 tabular-nums text-zinc-400">
+                  <td className="num px-4 py-[7px] text-right text-[11.5px] text-ink-mute">
                     {v.settled_count}
                   </td>
-                  <td className="px-5 py-3 font-medium text-zinc-200">
+                  <td className="num px-4 py-[7px] text-right text-[11.5px] text-ink">
                     {fmtMoney(v.total_amount)}
                   </td>
-                  <td className="px-5 py-3">
-                    {v.has_history ? (
-                      <span className="rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] text-emerald-300 ring-1 ring-inset ring-emerald-500/25">
-                        established
-                      </span>
-                    ) : (
-                      <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-[11px] text-amber-300 ring-1 ring-inset ring-amber-500/25">
-                        new — verify
-                      </span>
-                    )}
+                  <td className="num px-4 py-[7px] text-right text-[11px] text-ink-mute">
+                    {v.last_seen ? fmtStamp(v.last_seen) : "—"}
+                  </td>
+                  <td className="px-4 py-[7px]">
+                    <span
+                      className={`num inline-flex items-center gap-1.5 rounded-[2px] border px-1.5 py-[2px] text-[10px] uppercase ${
+                        v.has_history
+                          ? "border-settled/40 bg-settled-soft text-settled"
+                          : "border-hold/40 bg-hold-soft text-hold"
+                      }`}
+                    >
+                      <span
+                        aria-hidden="true"
+                        className={`h-[5px] w-[5px] ${
+                          v.has_history ? "bg-settled" : "bg-hold"
+                        }`}
+                      />
+                      {v.has_history ? "established" : "new — verify"}
+                    </span>
                   </td>
                 </tr>
               ))}
               {vendors.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-5 py-8 text-center text-sm text-zinc-500">
-                    No vendors yet.
+                  <td colSpan={6} className="px-4 py-8 text-center text-[12.5px] text-ink-mute">
+                    No vendors on the book yet.
                   </td>
                 </tr>
               )}

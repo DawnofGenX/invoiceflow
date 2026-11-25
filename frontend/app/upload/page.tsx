@@ -4,8 +4,40 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { api, type BatchUploadResult } from "@/lib/api";
 import AgentStream from "@/components/AgentStream";
+import { StatusToken } from "@/components/StatusToken";
 
-export default function UploadPage() {
+function RemoveIcon() {
+  return (
+    <svg
+      viewBox="0 0 12 12"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      aria-hidden="true"
+      className="h-3 w-3"
+    >
+      <path d="M2.5 2.5l7 7M9.5 2.5l-7 7" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+function TrayIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={1.25}
+      aria-hidden="true"
+      className="h-6 w-6 text-ink-mute"
+    >
+      <path d="M12 4v9m0 0 3.25-3.25M12 13 8.75 9.75" strokeLinecap="square" />
+      <path d="M4 15v3.5h16V15" strokeLinecap="square" />
+    </svg>
+  );
+}
+
+export default function IntakePage() {
   const [files, setFiles] = useState<File[]>([]);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -71,178 +103,211 @@ export default function UploadPage() {
   const accepted = results?.filter((r) => r.invoice_id).length ?? 0;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-zinc-100">
-          Upload invoices
-        </h1>
-        <p className="mt-1 text-sm text-zinc-400">
-          Drop one or many PDFs and images. The agent pipeline processes each file
-          live, explaining every decision it makes.
-        </p>
-      </div>
+    <div className="mx-auto max-w-[880px] px-5 py-8 sm:px-8">
+      <h1 className="text-[26px] font-semibold leading-tight tracking-[-0.02em]">
+        Intake
+      </h1>
+      <p className="mt-1 max-w-[64ch] text-[13px] text-ink-mute">
+        Send invoices in and watch the record build itself. Each file is read,
+        matched against purchase orders and prior payments, and routed — with one
+        printed line per decision.
+      </p>
 
-      <div
-        onClick={() => inputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault();
-          setDragOver(true);
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault();
-          setDragOver(false);
-          addFiles(e.dataTransfer.files);
-        }}
-        className={`flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-12 text-center transition-colors ${
-          dragOver
-            ? "border-emerald-500 bg-emerald-500/5"
-            : "border-zinc-700 bg-zinc-900/30 hover:border-zinc-500"
-        }`}
-      >
-        <svg
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth={1.5}
-          className="mb-3 h-10 w-10 text-zinc-500"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            d="M12 16.5V9.75m0 0 3 3m-3-3-3 3M6.75 19.5a4.5 4.5 0 0 1-1.41-8.775 5.25 5.25 0 0 1 10.233-2.33 3 3 0 0 1 3.758 3.848A3.752 3.752 0 0 1 18 19.5H6.75Z"
-          />
-        </svg>
-        <p className="text-sm font-medium text-zinc-200">
-          {files.length === 0
-            ? "Click to choose or drag & drop"
-            : `${files.length} file${files.length === 1 ? "" : "s"} selected`}
-        </p>
-        <p className="mt-1 text-xs text-zinc-500">
-          PDF, PNG, JPG · multiple files supported
-        </p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".pdf,image/*"
-          multiple
-          className="hidden"
-          onChange={(e) => addFiles(e.target.files)}
-        />
-      </div>
+      <div className="mt-6 grid gap-5 lg:grid-cols-[minmax(0,1fr)_260px]">
+        <div>
+          <div
+            onClick={() => inputRef.current?.click()}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              addFiles(e.dataTransfer.files);
+            }}
+            className={`flex cursor-pointer flex-col items-center justify-center border bg-slip px-6 py-10 text-center transition-colors duration-150 ${
+              dragOver
+                ? "border-ink bg-print-2"
+                : "border-field hover:border-ink hover:bg-print-2/60"
+            }`}
+          >
+            <TrayIcon />
+            <p className="micro mt-3 !text-ink">
+              Drop files, or browse the register
+            </p>
+            <p className="mt-1.5 text-[11.5px] text-ink-mute">
+              PDF, PNG or JPG — one file or many at once
+            </p>
+            <input
+              ref={inputRef}
+              type="file"
+              accept=".pdf,image/*"
+              multiple
+              className="hidden"
+              onChange={(e) => addFiles(e.target.files)}
+            />
+          </div>
 
-      {files.length > 0 && (
-        <ul className="space-y-1.5 rounded-xl border border-zinc-800 bg-zinc-900/40 p-3">
-          {files.map((f) => (
-            <li
-              key={`${f.name}:${f.size}`}
-              className="flex items-center justify-between gap-3 rounded-lg px-2 py-1 text-sm text-zinc-300"
+          {files.length > 0 && (
+            <div className="mt-4 border border-rule-firm bg-slip">
+              <div className="flex items-baseline justify-between border-b border-rule px-3 py-1.5">
+                <span className="micro">Staged</span>
+                <span className="num text-[10.5px] text-ink-mute">
+                  {files.length} file{files.length === 1 ? "" : "s"}
+                </span>
+              </div>
+              <ul>
+                {files.map((f) => (
+                  <li
+                    key={`${f.name}:${f.size}`}
+                    className="flex items-center gap-3 border-b border-rule px-3 py-1.5 last:border-0"
+                  >
+                    <span className="num w-6 shrink-0 text-[10px] text-ink-mute">
+                      {f.name.split(".").pop()?.toUpperCase().slice(0, 4) ?? "DOC"}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                      {f.name}
+                    </span>
+                    <span className="num shrink-0 text-[10.5px] text-ink-mute">
+                      {(f.size / 1024).toFixed(0)} KB
+                    </span>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setFiles((prev) => prev.filter((x) => x !== f));
+                      }}
+                      className="shrink-0 border border-field p-1 text-ink-mute transition-colors duration-150 hover:border-ink hover:text-ink"
+                      aria-label={`Remove ${f.name}`}
+                    >
+                      <RemoveIcon />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {error && (
+            <div className="mt-4 border border-void/40 bg-void-soft px-4 py-3">
+              <p className="num text-[11.5px] text-void">{error}</p>
+            </div>
+          )}
+
+          {!results && (
+            <button
+              onClick={handleUpload}
+              disabled={files.length === 0 || uploading}
+              className="mt-4 w-full rounded-[3px] bg-ink px-4 py-2.5 text-[10.5px] font-medium uppercase tracking-[0.12em] text-print transition-colors duration-150 hover:bg-ink-soft disabled:cursor-not-allowed disabled:opacity-35"
             >
-              <span className="truncate">{f.name}</span>
-              <span className="flex items-center gap-3 text-xs text-zinc-500">
-                {(f.size / 1024).toFixed(0)} KB
+              {uploading
+                ? "Reading the documents…"
+                : `Process ${files.length || ""} invoice${files.length === 1 ? "" : "s"}`}
+            </button>
+          )}
+
+          {results && (
+            <div className="mt-4 border border-rule-firm bg-slip">
+              <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink px-4 py-2.5">
+                <span className="micro !text-ink">
+                  Accepted <span className="num">{accepted}</span> of{" "}
+                  <span className="num">{results.length}</span>
+                </span>
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setFiles((prev) => prev.filter((x) => x !== f));
-                  }}
-                  className="rounded px-1.5 text-zinc-500 hover:bg-zinc-800 hover:text-zinc-300"
-                  aria-label={`Remove ${f.name}`}
+                  onClick={reset}
+                  className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink underline decoration-rule-firm underline-offset-4 hover:decoration-ink"
                 >
-                  ✕
+                  Intake more
                 </button>
+              </div>
+              <ul>
+                {results.map((r) => (
+                  <li
+                    key={r.filename}
+                    className="flex flex-wrap items-center gap-3 border-b border-rule px-4 py-2 last:border-0"
+                  >
+                    <span className="min-w-0 flex-1 truncate text-[12px] text-ink">
+                      {r.filename}
+                    </span>
+                    {r.invoice_id ? (
+                      <>
+                        <StatusToken
+                          status={
+                            r.invoice_id === liveId && finalStatus
+                              ? finalStatus
+                              : r.status
+                          }
+                        />
+                        <Link
+                          href={`/invoices/${r.invoice_id}`}
+                          className="num text-[10.5px] text-ink underline decoration-rule-firm underline-offset-4 hover:decoration-ink"
+                        >
+                          open record
+                        </Link>
+                      </>
+                    ) : (
+                      <span
+                        className="num text-[10.5px] text-void"
+                        title={r.error ?? ""}
+                      >
+                        {r.error ?? "void — unreadable"}
+                      </span>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {liveId && (
+            <div className="mt-5">
+              <AgentStream
+                invoiceId={liveId}
+                onComplete={(status) => setFinalStatus(status)}
+              />
+            </div>
+          )}
+
+          {finalStatus && liveId && (
+            <div className="mt-3 flex flex-wrap items-center justify-between gap-3 border border-rule-firm bg-slip px-4 py-3">
+              <span className="flex items-center gap-2">
+                <span className="micro !text-ink">Routed</span>
+                <StatusToken status={finalStatus} />
               </span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {error && (
-        <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-300">
-          {error}
-        </div>
-      )}
-
-      {!results && (
-        <button
-          onClick={handleUpload}
-          disabled={files.length === 0 || uploading}
-          className="w-full rounded-lg bg-emerald-500 px-4 py-2.5 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {uploading
-            ? "Uploading…"
-            : `Process ${files.length || ""} invoice${files.length === 1 ? "" : "s"}`}
-        </button>
-      )}
-
-      {results && (
-        <div className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
-          <p className="text-sm text-zinc-300">
-            Accepted{" "}
-            <span className="font-semibold text-emerald-400">{accepted}</span> of{" "}
-            {results.length} file{results.length === 1 ? "" : "s"}
-            {results.length - accepted > 0 && (
-              <span className="text-red-400">
-                {" "}
-                · {results.length - accepted} rejected
-              </span>
-            )}
-          </p>
-          <ul className="space-y-1.5">
-            {results.map((r) => (
-              <li
-                key={r.filename}
-                className="flex items-center justify-between gap-3 text-sm"
+              <Link
+                href={`/invoices/${liveId}`}
+                className="text-[10.5px] font-medium uppercase tracking-[0.08em] text-ink underline decoration-rule-firm underline-offset-4 hover:decoration-ink"
               >
-                <span className="truncate text-zinc-300">{r.filename}</span>
-                {r.invoice_id ? (
-                  <Link
-                    href={`/invoices/${r.invoice_id}`}
-                    className="shrink-0 text-xs text-emerald-400 hover:underline"
-                  >
-                    view audit trail →
-                  </Link>
-                ) : (
-                  <span
-                    className="shrink-0 text-xs text-red-400"
-                    title={r.error ?? ""}
-                  >
-                    {r.error ?? "rejected"}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-          <button
-            onClick={reset}
-            className="rounded-lg border border-zinc-700 px-3 py-1.5 text-sm text-zinc-300 hover:bg-zinc-800"
-          >
-            Upload more
-          </button>
+                Read the full record
+              </Link>
+            </div>
+          )}
         </div>
-      )}
 
-      {liveId && (
-        <AgentStream
-          invoiceId={liveId}
-          onComplete={(status) => setFinalStatus(status)}
-        />
-      )}
-
-      {finalStatus && liveId && (
-        <div className="rounded-xl border border-emerald-500/30 bg-emerald-500/10 p-4">
-          <p className="text-sm text-emerald-300">
-            Pipeline finished with status{" "}
-            <span className="font-semibold">{finalStatus}</span>.
-          </p>
-          <Link
-            href={`/invoices/${liveId}`}
-            className="mt-3 inline-block rounded-lg bg-emerald-500 px-4 py-2 text-sm font-semibold text-zinc-950 transition-colors hover:bg-emerald-400"
-          >
-            View audit trail →
-          </Link>
-        </div>
-      )}
+        <aside className="border border-rule bg-print-2/50 px-4 py-3">
+          <p className="micro">What happens next</p>
+          <ol className="mt-2 space-y-2 text-[11.5px] leading-[1.5] text-ink-mute">
+            <li>
+              <span className="num text-ink">01</span> Intake reads the document
+              type. Non-invoices are voided here.
+            </li>
+            <li>
+              <span className="num text-ink">02</span> Extraction pulls vendor,
+              amount, PO and line items.
+            </li>
+            <li>
+              <span className="num text-ink">03</span> Five validation rules run
+              in order: PO match, line items, duplicates, amount, anomalies.
+            </li>
+            <li>
+              <span className="num text-ink">04</span> Routing stamps a
+              disposition. Under $500 settles automatically; a new vendor never
+              does.
+            </li>
+          </ol>
+        </aside>
+      </div>
     </div>
   );
 }

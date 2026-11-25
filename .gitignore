@@ -49,3 +49,6 @@ desktop.ini
 
 # Docker
 *.log
+
+# impeccable review captures (local evidence, not shipped)
+.impeccable/review/

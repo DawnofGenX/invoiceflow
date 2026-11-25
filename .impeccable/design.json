@@ -1,0 +1,403 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-25T19:26:06Z",
+  "title": "Design System: InvoiceFlow — Confirmation Register",
+  "extensions": {
+    "colorMeta": {
+      "print": {
+        "role": "neutral",
+        "displayName": "Print Ground",
+        "canonical": "#f2f2ea",
+        "tonalRamp": [
+          "#fdfdfb",
+          "#f8f8f4",
+          "#f2f2ea",
+          "#9d9d98",
+          "#5c5c59"
+        ]
+      },
+      "print-2": {
+        "role": "neutral",
+        "displayName": "Print Ground 2",
+        "canonical": "#e9e9df",
+        "tonalRamp": [
+          "#fbfbf9",
+          "#f4f4ef",
+          "#e9e9df",
+          "#979791",
+          "#595955"
+        ]
+      },
+      "slip": {
+        "role": "neutral",
+        "displayName": "Slip Paper",
+        "canonical": "#fbfbf5",
+        "tonalRamp": [
+          "#fefefd",
+          "#fdfdfa",
+          "#fbfbf5",
+          "#a3a39f",
+          "#5f5f5d"
+        ]
+      },
+      "ink": {
+        "role": "primary",
+        "displayName": "Register Ink",
+        "canonical": "#0f1e1b",
+        "tonalRamp": [
+          "#d4d6d6",
+          "#878e8d",
+          "#0f1e1b",
+          "#0a1412",
+          "#060b0a"
+        ]
+      },
+      "ink-soft": {
+        "role": "primary",
+        "displayName": "Register Ink Soft",
+        "canonical": "#1e312d",
+        "tonalRamp": [
+          "#d6dad9",
+          "#8e9896",
+          "#1e312d",
+          "#14201d",
+          "#0b1311"
+        ]
+      },
+      "ink-mute": {
+        "role": "neutral",
+        "displayName": "Muted Ink",
+        "canonical": "#46554f",
+        "tonalRamp": [
+          "#dee0df",
+          "#a2aaa7",
+          "#46554f",
+          "#2e3733",
+          "#1b201e"
+        ]
+      },
+      "rail-text": {
+        "role": "neutral",
+        "displayName": "Rail Text",
+        "canonical": "#a9bab3",
+        "tonalRamp": [
+          "#f0f3f1",
+          "#d4dcd9",
+          "#a9bab3",
+          "#6e7974",
+          "#404744"
+        ]
+      },
+      "rule": {
+        "role": "neutral",
+        "displayName": "Rule",
+        "canonical": "#d5d7ca",
+        "tonalRamp": [
+          "#f7f8f5",
+          "#eaebe4",
+          "#d5d7ca",
+          "#8a8c83",
+          "#51524d"
+        ]
+      },
+      "rule-firm": {
+        "role": "neutral",
+        "displayName": "Rule Firm",
+        "canonical": "#b3b7a8",
+        "tonalRamp": [
+          "#f1f2ef",
+          "#d9dbd4",
+          "#b3b7a8",
+          "#74776d",
+          "#444640"
+        ]
+      },
+      "field": {
+        "role": "neutral",
+        "displayName": "Field Outline",
+        "canonical": "#7c8375",
+        "tonalRamp": [
+          "#e7e9e6",
+          "#bec1ba",
+          "#7c8375",
+          "#51554c",
+          "#2f322c"
+        ]
+      },
+      "settled": {
+        "role": "tertiary",
+        "displayName": "Settled Green",
+        "canonical": "#2a6350",
+        "tonalRamp": [
+          "#d9e3e0",
+          "#94b1a8",
+          "#2a6350",
+          "#1b4034",
+          "#10261e"
+        ]
+      },
+      "settled-soft": {
+        "role": "tertiary",
+        "displayName": "Settled Soft",
+        "canonical": "#dce6df",
+        "tonalRamp": [
+          "#f9faf9",
+          "#eef2ef",
+          "#dce6df",
+          "#8f9691",
+          "#545755"
+        ]
+      },
+      "hold": {
+        "role": "secondary",
+        "displayName": "Hold Oxide",
+        "canonical": "#8a5b10",
+        "tonalRamp": [
+          "#eae1d4",
+          "#c4ad88",
+          "#8a5b10",
+          "#5a3b0a",
+          "#342306"
+        ]
+      },
+      "hold-soft": {
+        "role": "secondary",
+        "displayName": "Hold Soft",
+        "canonical": "#efe5cb",
+        "tonalRamp": [
+          "#fcfaf6",
+          "#f7f2e5",
+          "#efe5cb",
+          "#9b9584",
+          "#5b574d"
+        ]
+      },
+      "void": {
+        "role": "secondary",
+        "displayName": "Void Red",
+        "canonical": "#a23a22",
+        "tonalRamp": [
+          "#eedcd7",
+          "#d09c90",
+          "#a23a22",
+          "#692616",
+          "#3e160d"
+        ]
+      },
+      "void-soft": {
+        "role": "secondary",
+        "displayName": "Void Soft",
+        "canonical": "#f1dad2",
+        "tonalRamp": [
+          "#fcf8f7",
+          "#f8ece8",
+          "#f1dad2",
+          "#9d8e88",
+          "#5c5350"
+        ]
+      },
+      "signal": {
+        "role": "secondary",
+        "displayName": "Signal Lamp",
+        "canonical": "#b4481f",
+        "tonalRamp": [
+          "#f2ded7",
+          "#daa48f",
+          "#b4481f",
+          "#752f14",
+          "#441b0c"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Register Title",
+        "purpose": "Page titles only: 26px Archivo 600, tracking -0.02em."
+      },
+      "body": {
+        "displayName": "Prose",
+        "purpose": "Page-level sentences, 13px Archivo; measure capped at 64-68ch."
+      },
+      "reasoning": {
+        "displayName": "Reasoning",
+        "purpose": "Agent reasoning sentences printed into decision lines."
+      },
+      "micro": {
+        "displayName": "Micro Label",
+        "purpose": "Column heads, nav, tokens, buttons: mono caps, 0.12em tracking."
+      },
+      "data": {
+        "displayName": "Data",
+        "purpose": "References, PO numbers, dates, confidences: mono, tabular numerals."
+      },
+      "amount": {
+        "displayName": "Amount",
+        "purpose": "Money on a slip: 18px mono, used once per record."
+      }
+    },
+    "shadows": [],
+    "motion": [
+      {
+        "name": "print-in",
+        "value": "clip-path: inset(0 100% 0 0) -> inset(0 0 0 0), 240ms steps(12, end)",
+        "purpose": "A decision line printing into its fixed cell. The one authored motion moment."
+      },
+      {
+        "name": "lamp-pulse",
+        "value": "opacity 1 -> 0.25, 1.4s steps(2, end) infinite",
+        "purpose": "An unacknowledged change on a row or the nav lamp."
+      },
+      {
+        "name": "state-transition",
+        "value": "150ms ease",
+        "purpose": "Hover, focus and border changes on controls; never longer than 250ms."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "@media (prefers-reduced-motion: reduce) { animation: none }",
+        "purpose": "Kill switch for both keyframe animations."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "sm",
+        "value": "640px"
+      },
+      {
+        "name": "md",
+        "value": "768px"
+      },
+      {
+        "name": "lg",
+        "value": "1024px"
+      },
+      {
+        "name": "xl",
+        "value": "1440px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The stamped action on a surface. Names its object, e.g. Process 2 invoices; reads Stamping… while busy.",
+      "html": "<button class=\"ds-btn-primary\">PROCESS 2 INVOICES</button>",
+      "css": ".ds-btn-primary { background: #0f1e1b; color: #f2f2ea; border: 0; border-radius: 3px; padding: 8px 16px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; cursor: pointer; transition: background-color 150ms ease; } .ds-btn-primary:hover { background: #1e312d; } .ds-btn-primary:focus-visible { outline: 2px solid #0f1e1b; outline-offset: 2px; } .ds-btn-primary:active { background: #08110f; } .ds-btn-primary:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary path beside a primary action: seed data, reset a form, add another.",
+      "html": "<button class=\"ds-btn-quiet\">SEED DEMO LEDGER</button>",
+      "css": ".ds-btn-quiet { background: transparent; color: #0f1e1b; border: 1px solid #b3b7a8; border-radius: 3px; padding: 8px 12px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; cursor: pointer; transition: background-color 150ms ease, border-color 150ms ease; } .ds-btn-quiet:hover { background: #e9e9df; border-color: #0f1e1b; } .ds-btn-quiet:focus-visible { outline: 2px solid #0f1e1b; outline-offset: 2px; } .ds-btn-quiet:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Void Button",
+      "kind": "button",
+      "refersTo": "button-void",
+      "description": "The destructive decision on a held entry. Never the default weight, never filled.",
+      "html": "<button class=\"ds-btn-void\">VOID</button>",
+      "css": ".ds-btn-void { background: transparent; color: #a23a22; border: 1px solid rgba(162,58,34,0.5); border-radius: 0; padding: 8px 12px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; cursor: pointer; transition: background-color 150ms ease; } .ds-btn-void:hover { background: #f1dad2; border-color: #a23a22; } .ds-btn-void:focus-visible { outline: 2px solid #a23a22; outline-offset: 2px; } .ds-btn-void:disabled { opacity: 0.4; cursor: not-allowed; }"
+    },
+    {
+      "name": "Search Input",
+      "kind": "input",
+      "refersTo": "input-search",
+      "description": "Filters the register in place. Slip ground, 1px field outline that clears 3:1, ink border on focus, no glow.",
+      "html": "<input class=\"ds-input-search\" type=\"search\" placeholder=\"Search reference, vendor or PO\" />",
+      "css": ".ds-input-search { background: #fbfbf5; color: #0f1e1b; border: 1px solid #7c8375; border-radius: 0; padding: 6px 10px; font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11.5px; width: 208px; transition: border-color 150ms ease; } .ds-input-search::placeholder { color: #46554f; } .ds-input-search:hover { border-color: #1e312d; } .ds-input-search:focus { border-color: #0f1e1b; outline: none; box-shadow: none; }"
+    },
+    {
+      "name": "Status Token",
+      "kind": "chip",
+      "refersTo": "status-token",
+      "description": "A disposition stamped into the record: mono caps, 2px radius, soft ground and a 5px square swatch. Never a pill.",
+      "html": "<span class=\"ds-row-tokens\"><span class=\"ds-token ds-token-settled\"><i></i>SETTLED</span><span class=\"ds-token ds-token-hold\"><i></i>HELD</span><span class=\"ds-token ds-token-void\"><i></i>VOID</span></span>",
+      "css": ".ds-row-tokens { display: inline-flex; gap: 8px; align-items: center; } .ds-token { display: inline-flex; align-items: center; gap: 6px; border: 1px solid; border-radius: 2px; padding: 2px 6px; font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; } .ds-token i { display: inline-block; width: 5px; height: 5px; } .ds-token-settled { color: #2a6350; background: #dce6df; border-color: #2a6350; } .ds-token-settled i { background: #2a6350; } .ds-token-hold { color: #8a5b10; background: #efe5cb; border-color: #8a5b10; } .ds-token-hold i { background: #8a5b10; } .ds-token-void { color: #a23a22; background: #f1dad2; border-color: #a23a22; } .ds-token-void i { background: #a23a22; }"
+    },
+    {
+      "name": "Ink Rail",
+      "kind": "nav",
+      "refersTo": "nav-rail",
+      "description": "The 52px shell: document mark, wordmark, mono kicker, micro-caps links with a print chip for the active one, held lamp on the right.",
+      "html": "<nav class=\"ds-rail\"><span class=\"ds-rail-mark\"><svg width=\"20\" height=\"20\" viewBox=\"0 0 20 20\" fill=\"none\" stroke=\"#f2f2ea\" stroke-width=\"1.25\"><path d=\"M4.5 2.5h7l4 4v11h-11z\"/><path d=\"M11.5 2.5v4h4\"/><path d=\"M7 11h6M7 14h4\"/></svg></span><span class=\"ds-rail-word\">InvoiceFlow</span><span class=\"ds-rail-kicker\">CONFIRMATION REGISTER</span><span class=\"ds-rail-links\"><a class=\"on\" href=\"#\">Register</a><a href=\"#\">Intake</a><a href=\"#\">Held</a><a href=\"#\">Evidence</a></span><span class=\"ds-rail-held\"><i></i>HELD 02</span></nav>",
+      "css": ".ds-rail { display: flex; align-items: center; gap: 16px; height: 52px; padding: 0 20px; background: #0f1e1b; color: #a9bab3; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; } .ds-rail-mark { display: inline-flex; } .ds-rail-word { color: #f2f2ea; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; } .ds-rail-kicker { font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px; letter-spacing: 0.14em; color: #a9bab3; } .ds-rail-links { display: inline-flex; gap: 2px; margin-left: auto; } .ds-rail-links a { color: #a9bab3; text-decoration: none; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; padding: 5px 9px; border-radius: 3px; transition: color 150ms ease, background-color 150ms ease; } .ds-rail-links a:hover { color: #f2f2ea; background: #1e312d; } .ds-rail-links a:focus-visible { outline: 2px solid #f2f2ea; outline-offset: 2px; } .ds-rail-links a.on { background: #f2f2ea; color: #0f1e1b; } .ds-rail-held { display: inline-flex; align-items: center; gap: 6px; font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10.5px; letter-spacing: 0.08em; color: #a9bab3; } .ds-rail-held i { width: 6px; height: 6px; background: #b4481f; }"
+    },
+    {
+      "name": "Register Row",
+      "kind": "custom",
+      "refersTo": "status-token",
+      "description": "One record in the queue: 36px, hairline separated, lamp gutter, mono numerics right-aligned, selected row inverted to ink.",
+      "html": "<table class=\"ds-reg\"><thead><tr><th></th><th>REFERENCE</th><th>VENDOR</th><th class=\"r\">AMOUNT</th><th>PO</th><th class=\"r\">CONF</th><th>DISPOSITION</th></tr></thead><tbody><tr><td class=\"lamp\"><i></i></td><td class=\"num\">INV-2024-030</td><td class=\"vend\">Cobalt Logistics</td><td class=\"num r\">$8,750.00</td><td class=\"num\">PO-3301</td><td class=\"num r\">94.0%</td><td><span class=\"ds-token ds-token-hold\"><i></i>HELD</span></td></tr><tr class=\"sel\"><td class=\"lamp\"><i></i></td><td class=\"num\">INV-2024-001</td><td class=\"vend\">Acme Industrial Supply</td><td class=\"num r\">$450.00</td><td class=\"num\">PO-3300</td><td class=\"num r\">98.0%</td><td><span class=\"ds-token ds-token-settled\"><i></i>SETTLED</span></td></tr></tbody></table>",
+      "css": ".ds-reg { width: 100%; border-collapse: collapse; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; color: #0f1e1b; } .ds-reg th { text-align: left; font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.12em; font-weight: 500; color: #46554f; padding: 6px 8px; border-bottom: 1px solid #b3b7a8; background: #e9e9df; } .ds-reg td { height: 36px; padding: 0 8px; border-bottom: 1px solid #d5d7ca; font-size: 12.5px; } .ds-reg .num { font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; font-size: 11.5px; } .ds-reg .r { text-align: right; } .ds-reg .lamp { width: 18px; } .ds-reg .lamp i { display: block; width: 6px; height: 6px; background: #b4481f; } .ds-reg tbody tr:hover { background: #e9e9df; } .ds-reg tr.sel td { background: #0f1e1b; color: #f2f2ea; } .ds-reg tr.sel .num, .ds-reg tr.sel .vend { color: #f2f2ea; } .ds-reg tr.sel .ds-token { border-color: rgba(242,242,234,0.4); color: #f2f2ea; background: transparent; } .ds-reg tr.sel .ds-token i { background: #f2f2ea; }"
+    },
+    {
+      "name": "Confirmation Slip",
+      "kind": "card",
+      "refersTo": "status-token",
+      "description": "The record itself: reference header with the stamp, ruled field grid, then numbered decision lines carrying rule, confidence, duration and the sentence that decided.",
+      "html": "<section class=\"ds-slip\"><header><span class=\"ref\">INV-2024-030</span><span class=\"ds-token ds-token-hold\"><i></i>HELD</span></header><dl class=\"grid\"><div><dt>ISSUED</dt><dd>Nov 25 19:18</dd></div><div><dt>VENDOR</dt><dd>Cobalt Logistics</dd></div><div><dt>AMOUNT</dt><dd class=\"num\">$8,750.00</dd></div><div><dt>CONFIDENCE</dt><dd class=\"num\">94.0%</dd></div></dl><div class=\"bar\">DECISION LINES · 7 PRINTED</div><ol><li><span class=\"n\">01</span><div><p class=\"head\"><b>APPROVAL</b> route_approval <em>admin</em> <span class=\"meta\">94.0% · 12 ms</span></p><p class=\"why\">Amount $8,750.00 requires 'admin' approval (rule 'admin').</p></div></li><li><span class=\"n\">02</span><div><p class=\"head\"><b>VALIDATION</b> amount_verification <em>amount_match</em> <span class=\"meta\">99.0% · 3 ms</span></p><p class=\"why\">The extracted total matches the sum of the line items to the cent.</p></div></li></ol></section>",
+      "css": ".ds-slip { background: #fbfbf5; border: 1px solid #b3b7a8; border-radius: 6px; font-family: Archivo, ui-sans-serif, system-ui, sans-serif; color: #0f1e1b; } .ds-slip header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 12px; border-bottom: 1px solid #0f1e1b; } .ds-slip header .ref { font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; letter-spacing: 0.04em; } .ds-slip .grid { display: grid; grid-template-columns: 1fr 1fr; margin: 0; } .ds-slip .grid div { display: grid; grid-template-columns: 76px 1fr; align-items: center; padding: 5px 12px; border-bottom: 1px solid #d5d7ca; } .ds-slip dt { font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: #46554f; } .ds-slip dd { margin: 0; font-size: 12px; } .ds-slip dd.num { font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-variant-numeric: tabular-nums; } .ds-slip .bar { font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px; text-transform: uppercase; letter-spacing: 0.12em; color: #46554f; padding: 7px 12px; background: #e9e9df; border-bottom: 1px solid #d5d7ca; } .ds-slip ol { list-style: none; margin: 0; padding: 0; } .ds-slip li { display: grid; grid-template-columns: 26px 1fr; gap: 6px; padding: 8px 12px; border-bottom: 1px solid #d5d7ca; } .ds-slip li:last-child { border-bottom: 0; } .ds-slip .n { font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 9.5px; color: #46554f; } .ds-slip .head { margin: 0; font-family: 'Sometype Mono', ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; display: flex; flex-wrap: wrap; gap: 6px; align-items: baseline; color: #46554f; } .ds-slip .head b { color: #0f1e1b; font-weight: 500; } .ds-slip .head em { font-style: normal; border: 1px solid #b3b7a8; border-radius: 2px; padding: 0 4px; color: #0f1e1b; } .ds-slip .meta { margin-left: auto; } .ds-slip .why { margin: 4px 0 0; font-size: 12.5px; line-height: 1.55; max-width: 68ch; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Confirmation Register",
+    "overview": "InvoiceFlow's queue is not a dashboard of KPI cards; it is a register of confirmations. The product's whole claim is that every decision an agent made is readable after the fact, so the interface is built like the paperwork that has always carried trust in accounts payable: a pale print ground, an ink-green shell, hairlines that separate one record from the next, and confirmation lines printed into fixed cells in the order they happened. The register refuses the category default twice: no hero metric grid, and no decision summarised into a coloured pill. A disposition is a stamped token with a square swatch, the way a clerk would stamp a slip.",
+    "keyCharacteristics": [
+      "Print-and-ink world: pale #f2f2ea ground, ink-green shell, 1px rules instead of card shadows.",
+      "Two voices: Archivo sets labels and prose; Sometype Mono sets every reference, amount, timestamp, confidence and token.",
+      "Dispositions are stamps, never pills, and colour only ever means state.",
+      "Density for a clerk working a queue all day: 36px rows, tabular numerals, no wasted verticals.",
+      "Motion conveys state only: the print-in cascade on new decision lines and a lamp pulse for unacknowledged changes."
+    ],
+    "rules": [
+      {
+        "name": "The Registers, Not Dashboards Rule",
+        "body": "A screen in this product is a ruled record with a fixed reading order. If an arrangement could belong to any SaaS dashboard, it is wrong here.",
+        "section": "colors"
+      },
+      {
+        "name": "The Stamp Rule",
+        "body": "State is shown as a stamped mono token with a square swatch beside it. Pills, dots alone, and colour blocks without a word are not dispositions.",
+        "section": "shapes"
+      },
+      {
+        "name": "The Monospace Means Data Rule",
+        "body": "Sometype Mono appears only where a value must be compared column-to-column or read back verbatim. Prose is always Archivo.",
+        "section": "typography"
+      },
+      {
+        "name": "The Two Jobs Rule",
+        "body": "Colour either states a disposition or marks something unacknowledged. Nothing is coloured for decoration, importance, or category.",
+        "section": "colors"
+      },
+      {
+        "name": "The Fixed Cell Rule",
+        "body": "Numeric columns are right-aligned mono with tabular numerals so digits line up down the register; a proportional face in a numeric column is a defect.",
+        "section": "typography"
+      },
+      {
+        "name": "The Layered Paper Rule",
+        "body": "To lift something, put it on a brighter paper and rule its edge. Never float it with a shadow, a blur, or a backdrop filter.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do keep one reading order per record: what happened, how sure, which rule.",
+      "Do print reasoning sentences verbatim from the audit table; never paraphrase them in the UI.",
+      "Do reserve colour for state and for the unacknowledged lamp.",
+      "Do use tabular mono for anything that is compared or read back.",
+      "Do give every control default, hover, focus-visible, active, disabled and loading states."
+    ],
+    "donts": [
+      "Don't build a KPI card grid, a big-number hero, or an eyebrow above a heading.",
+      "Don't put a decision in a pill, a dot alone, or a coloured left border.",
+      "Don't add shadows, glass, blur, gradient text, or decorative progress rings.",
+      "Don't use mono as a costume outside data: no mono paragraphs, no mono headings.",
+      "Don't claim compliance or payment execution anywhere in the interface; this build does neither."
+    ]
+  }
+}

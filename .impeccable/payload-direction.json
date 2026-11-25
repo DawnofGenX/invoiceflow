@@ -1,0 +1,157 @@
+{
+  "title": "InvoiceFlow — choose the visual world",
+  "question": "The roll assigned Confirmation Slip (a world of SWIFT/telex payment confirmations) as the direction to build. Keep it, take an alternate, or re-roll. Code-led: this is a working screen, it gets built, not comped.",
+  "options": [
+    {
+      "id": "assigned",
+      "kind": "assigned",
+      "label": "Confirmation Slip",
+      "kicker": "THE ROLL",
+      "lineage": "SWIFT / telex payment confirmation slips",
+      "thesis": "Every invoice decision printed as a settlement confirmation you can read line by line.",
+      "palette": ["#101F1D", "#F1F2EA", "#2C6A57", "#B4481F"],
+      "materials": ["teleprinter print", "ink-stamped reference blocks"],
+      "viewport": "Deep ink-green rail carrying the queue as a ruled confirmation register; the selected invoice prints its audit lines into fixed cells.",
+      "risk": "Mono collapses into terminal costume if the sans loses its job.",
+      "raised": [
+        {
+          "from": "signals-instruments-split-flap-concourse",
+          "raise": "Live agent output cascades per character into fixed cells instead of fading in as a block."
+        },
+        {
+          "from": "vernacular-ephemera-boarding-pass-and-gate-board",
+          "raise": "A row whose status changes moves in place and holds a signal lamp until it is acknowledged."
+        },
+        {
+          "from": "wayfinding-cartography-signage-midnight-transit-diagram",
+          "raise": "The pipeline is drawn as a line bending only at 45° and 90°, with interchange nodes exactly where a human has to take over."
+        }
+      ],
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          { "label": "ink rail / nav + queue counts", "x": 0, "y": 0, "w": 12, "h": 1, "accent": true },
+          { "label": "pipeline line (45/90)", "x": 0, "y": 1, "w": 12, "h": 1 },
+          { "label": "confirmation register (dense table)", "x": 0, "y": 2, "w": 8, "h": 8 },
+          { "label": "confirmation detail panel", "x": 8, "y": 2, "w": 4, "h": 8 }
+        ]
+      }
+    },
+    {
+      "id": "model-pick",
+      "kind": "pick",
+      "label": "Audit Working Papers",
+      "kicker": "IMPECCABLE’S PICK",
+      "lineage": "public-accounting working papers and tick-mark notation",
+      "thesis": "Each invoice is a working paper whose margin ticks are the evidence.",
+      "palette": ["#EFE9D8", "#22201C", "#2E5C7A", "#9C3A2E"],
+      "materials": ["ruled ledger stock", "pencil annotation", "annotation-blue ink"],
+      "viewport": "Buff ruled sheet with a margin column of drawn tick marks, one per validation rule, each opening into its own reasoning.",
+      "risk": "The most familiar move for an audit product — the comfort of the obvious.",
+      "wireframe": {
+        "cols": 12,
+        "rows": 10,
+        "regions": [
+          { "label": "nav + batch header", "x": 0, "y": 0, "w": 12, "h": 1 },
+          { "label": "rule tick margin", "x": 0, "y": 1, "w": 2, "h": 9 },
+          { "label": "working paper body", "x": 2, "y": 1, "w": 10, "h": 9 }
+        ]
+      }
+    },
+    {
+      "id": "challenger-split-flap",
+      "kind": "challenger",
+      "catalogId": "signals-instruments-split-flap-concourse",
+      "label": "Split-Flap Concourse",
+      "verdict": "competitive",
+      "lineage": "rail concourse departure boards",
+      "thesis": "The queue as a departure board: fixed columns, characters that clack into place.",
+      "palette": ["#111111", "#E8E8E8", "#C98A1F", "#3F4A4E"],
+      "materials": ["matte flap faces", "brushed steel frame", "amber row lamps"],
+      "viewport": "Steel-framed board of fixed columns; the newest invoice flips character by character while everything else holds still.",
+      "case": "Fuses cleanly: dense ruled rows that update in place. Loses on warmth across an eight-hour shift.",
+      "risk": "Reads as signage when the reasoning prose has nowhere to sit."
+    },
+    {
+      "id": "challenger-gate-board",
+      "kind": "challenger",
+      "catalogId": "vernacular-ephemera-boarding-pass-and-gate-board",
+      "label": "Boarding Pass + Gate Board",
+      "verdict": "competitive",
+      "lineage": "airline boarding documents and gate boards",
+      "thesis": "Invoice as a segmented pass; the queue as a board that reranks itself in place.",
+      "palette": ["#FAFAF7", "#14161A", "#C7352A", "#8A9099"],
+      "materials": ["high-contrast neutral panels", "tabulated scannable block"],
+      "viewport": "Board of flights-like rows ranked by arrival time; the selected invoice opens as a pass split into labelled segments.",
+      "case": "Tabular figures and in-place reranking suit a live queue; gives the reasoning prose less room.",
+      "risk": "One alert colour is a thin skin for five rule types."
+    },
+    {
+      "id": "challenger-transit",
+      "kind": "challenger",
+      "catalogId": "wayfinding-cartography-signage-midnight-transit-diagram",
+      "label": "Midnight Transit Diagram",
+      "verdict": "competitive",
+      "lineage": "metropolitan rail wayfinding",
+      "thesis": "The pipeline as a line: stations are stages, interchanges are human handoffs.",
+      "palette": ["#121B32", "#F3F1EA", "#C0392B", "#2D6CB5"],
+      "materials": ["enamel ground", "line ink", "interchange circles"],
+      "viewport": "Dark enamel panel with one line running the width; every invoice is a marker travelling it, stopped at the station that claimed it.",
+      "case": "Explains flow at a glance and makes stalls legible; the map can outshout the invoice itself.",
+      "risk": "Diagram-first screens make a clerk read a metaphor before the data."
+    },
+    {
+      "id": "challenger-acetate-manual",
+      "kind": "challenger",
+      "catalogId": "rw-manual-acetate-tab-board",
+      "label": "Acetate Manual",
+      "verdict": "declined",
+      "lineage": "boxed-software reference manuals",
+      "palette": ["#FFD400", "#F2F1EA", "#E2622C", "#2F6E4F"],
+      "materials": ["clear acetate leaves", "coloured divider boards"],
+      "case": "Fuses poorly: software-manual retrieval is not the clerk's mental model.",
+      "kept": "Ply discipline — only the top layer carries emphasis, and a stepped rail encodes extent.",
+      "risk": "Nostalgia for a manual nobody ever enjoyed using."
+    },
+    {
+      "id": "challenger-metro-tiles",
+      "kind": "challenger",
+      "catalogId": "digital-design-canon-metro-typographic-tiles",
+      "label": "Metro Typographic Tiles",
+      "verdict": "declined",
+      "lineage": "1996–2001 metro/panorama type screens",
+      "palette": ["#000000", "#00E5D0", "#FF2D95", "#FFFFFF"],
+      "materials": ["flat colour fields", "cropped display type"],
+      "case": "Fuses poorly: giant cropped type fights density in a queue screen.",
+      "kept": "Colour fields own whole regions instead of sprinkling accents.",
+      "risk": "A poster pretending to be a tool."
+    },
+    {
+      "id": "challenger-character-catalog",
+      "kind": "challenger",
+      "catalogId": "pop-culture-shelf-character-goods-catalog",
+      "label": "Character Goods Catalog",
+      "verdict": "declined",
+      "lineage": "character merchandise catalogs",
+      "palette": ["#FDE8F1", "#FFF6E5", "#8AC6E8", "#F2A0B8"],
+      "materials": ["pastel grounds", "name plates"],
+      "case": "Fuses poorly: playfulness is on the user's list of wrong outcomes.",
+      "kept": "Every record carries fixed furniture — name, date, one-line note.",
+      "risk": "Cute in a screenshot, exhausting in a shift."
+    }
+  ],
+  "reroll": { "registers": ["safer", "bolder"] },
+  "steer": true,
+  "canon": true,
+  "canonCard": {
+    "kind": "canon",
+    "label": "The admin-SaaS standard",
+    "thesis": "White ground, blue accent, sidebar, four stat cards — executed impeccably.",
+    "palette": ["#FFFFFF", "#111827", "#2563EB"],
+    "materials": ["flat surfaces", "system sans", "soft shadows"],
+    "viewport": "Sidebar navigation, KPI cards across the top, a table below.",
+    "risk": "Indistinguishable from every AP dashboard by design."
+  },
+  "buildPath": { "value": "code", "toggle": false }
+}
