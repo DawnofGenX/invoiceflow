@@ -17,8 +17,13 @@ which is what auditors ask for before an automated control output is accepted as
 
 Running right now on a small VM, deployed from this repo with `docker compose up -d --build`:
 
-- **<https://kit-commerce-posts-letters.trycloudflare.com>** — temporary Cloudflare tunnel
-  (the VM's inbound port 80 is not open yet; the tunnel is a stopgap, not the production URL).
+- **<https://hermes-vm.tailfd1655.ts.net>** — stable public HTTPS URL, served through a Tailscale
+  Funnel (the VM's Azure NSG only exposes SSH, and the tenant blocks device-code auth, so the
+  Funnel is the production ingress; it survives reconnects and reboots).
+
+Verified end to end against that public URL: `python3 scripts/e2e_smoke.py --base-url
+https://hermes-vm.tailfd1655.ts.net` → **63/63 checks passed**, all requests routed through the
+public Funnel ingress (103.84.155.153), not the tailnet.
 
 Start at **Transparency**, upload any file from `backend/demo-data/sample_invoices/`, and watch the
 agents stream their decisions live. No signup, no seeding required — the DB ships with demo history.

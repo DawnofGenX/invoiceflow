@@ -116,13 +116,32 @@ Expect `63/63 checks passed`.
 
 ### 6. Domain
 
-- No DNS needed: `<anything>.<vm-public-ip>.nip.io` and `.sslip.io` resolve to the VM.
+- No DNS needed: `<anything>.<vm-public-ip>.nip.io` and `.sslip.io` resolve to the VM — but both
+  still require the inbound port to be open in the cloud firewall.
 - Real domain: create an `A` record pointing at the VM, then add a TLS terminator —
   easiest is Caddy or certbot in front, or nginx with `listen 443 ssl`.
 
-### 7. If the port cannot be opened
+### 7. If the port cannot be opened (the current production setup)
 
-A Cloudflare quick tunnel works without any firewall change:
+On this VM the Azure NSG exposes only TCP 22, and the tenant enforces security defaults
+(`AADSTS530035`) so `az login --use-device-code` cannot be used to edit it from inside the guest.
+A Tailscale Funnel gives a stable public HTTPS URL with no inbound port and no cloud credentials:
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up --hostname=hermes-vm        # prints a login.tailscale.com link — approve once
+sudo tailscale funnel --bg 80                 # -> https://hermes-vm.<tailnet>.ts.net
+sudo tailscale funnel status                  # confirm the mapping
+
+# verify from OUTSIDE the tailnet (public DNS returns Funnel ingress IPs, not the node IP):
+dig +short @1.1.1.1 hermes-vm.<tailnet>.ts.net
+curl -s --resolve hermes-vm.<tailnet>.ts.net:443:<ingress-ip> https://hermes-vm.<tailnet>.ts.net/api/health
+```
+
+Live now: **https://hermes-vm.tailfd1655.ts.net** (Funnel persists across reconnects and reboots;
+`sudo tailscale funnel reset` disables it).
+
+Fallback that needs no Tailscale account — Cloudflare quick tunnel:
 
 ```bash
 curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 \
@@ -132,8 +151,8 @@ sudo systemd-run --unit=cf-quick-tunnel --collect \
 sudo journalctl -u cf-quick-tunnel | grep -oE 'https://[a-z0-9-]+\.trycloudflare\.com' | tail -1
 ```
 
-The hostname is random and dies with the tunnel process — fine for a demo, wrong for a
-submission URL.
+The quick-tunnel hostname is random and dies with the tunnel process — fine for a demo, wrong
+for a submission URL.
 
 ---
 
