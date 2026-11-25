@@ -45,3 +45,16 @@ class InvoiceDetail(InvoiceSummary):
 class InvoiceUploadResponse(BaseModel):
     invoice_id: str
     status: str
+
+
+class BatchUploadItem(BaseModel):
+    filename: str
+    invoice_id: str | None = None
+    status: str
+    error: str | None = None
+
+
+class BatchUploadResponse(BaseModel):
+    accepted: int
+    failed: int
+    results: list[BatchUploadItem]

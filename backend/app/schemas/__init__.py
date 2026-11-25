@@ -3,6 +3,8 @@ from app.schemas.approval import ApprovalDecisionIn, ApprovalRequestOut
 from app.schemas.audit import AuditLogOut
 from app.schemas.common import DashboardStats
 from app.schemas.invoice import (
+    BatchUploadItem,
+    BatchUploadResponse,
     InvoiceDetail,
     InvoiceSummary,
     InvoiceUploadResponse,
@@ -13,6 +15,8 @@ __all__ = [
     "ApprovalDecisionIn",
     "ApprovalRequestOut",
     "AuditLogOut",
+    "BatchUploadItem",
+    "BatchUploadResponse",
     "DashboardStats",
     "InvoiceDetail",
     "InvoiceSummary",

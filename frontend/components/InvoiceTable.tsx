@@ -42,10 +42,10 @@ export default function InvoiceTable({
                   href={`/invoices/${inv.id}`}
                   className="font-medium text-zinc-200 hover:text-emerald-400"
                 >
-                  {inv.invoice_number}
+                  {inv.invoice_number || "no number"}
                 </Link>
               </td>
-              <td className="px-4 py-3 text-zinc-300">{inv.vendor_name}</td>
+              <td className="px-4 py-3 text-zinc-300">{inv.vendor_name || "—"}</td>
               <td className="px-4 py-3 font-medium text-zinc-200">
                 {fmtMoney(inv.amount, inv.currency)}
               </td>

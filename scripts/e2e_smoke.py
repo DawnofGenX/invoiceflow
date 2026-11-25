@@ -19,6 +19,7 @@ import json
 import sys
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
 
@@ -108,6 +109,32 @@ def upload(base: str, path: Path) -> dict | None:
     if status >= 400:
         return {"_error": f"HTTP {status}: {payload}"}
     return payload
+
+
+def upload_many(base: str, paths: list[Path]) -> tuple[int, dict | None]:
+    """POST several files to /api/invoices/upload-batch in one multipart body."""
+    boundary = "----invoiceflow-smoke-batch"
+    chunks: list[bytes] = []
+    for path in paths:
+        chunks.append(f"--{boundary}\r\n".encode())
+        chunks.append(
+            f'Content-Disposition: form-data; name="files"; filename="{path.name}"\r\n'.encode()
+        )
+        chunks.append(b"Content-Type: application/pdf\r\n\r\n")
+        chunks.append(path.read_bytes())
+        chunks.append(b"\r\n")
+    chunks.append(f"--{boundary}--\r\n".encode())
+    status, raw = req(
+        base,
+        "/api/invoices/upload-batch",
+        method="POST",
+        data=b"".join(chunks),
+        headers={"Content-Type": f"multipart/form-data; boundary={boundary}"},
+    )
+    try:
+        return status, json.loads(raw)
+    except Exception:
+        return status, None
 
 
 def wait_terminal(base: str, invoice_id: str, timeout: float = 180.0) -> dict | None:
@@ -246,6 +273,154 @@ def run(base: str, samples: Path) -> int:
                 res.get("invoice_status") == "payment_scheduled",
                 str(res.get("invoice_status")),
             )
+
+    print("\n[7] batch upload")
+    batch_files = [samples / "sample-clean.pdf", samples / "sample-contract.pdf"]
+    if all(f.exists() for f in batch_files):
+        st, payload = upload_many(base, batch_files)
+        ok_shape = (
+            st in (200, 201)
+            and isinstance(payload, dict)
+            and isinstance(payload.get("results"), list)
+            and len(payload["results"]) == len(batch_files)  # type: ignore[arg-type]
+        )
+        check(
+            "POST /api/invoices/upload-batch",
+            ok_shape,
+            f"HTTP {st} {json.dumps(payload)[:300] if payload else 'no body'}",
+        )
+        if ok_shape and isinstance(payload, dict):
+            raw_results = payload.get("results") or []
+            results_list: list[dict] = [r for r in raw_results if isinstance(r, dict)]
+            check(
+                "batch reports accepted + failed counts",
+                isinstance(payload.get("accepted"), int)
+                and isinstance(payload.get("failed"), int)
+                and payload["accepted"] + payload["failed"] == len(batch_files),  # type: ignore[index]
+                f"accepted={payload.get('accepted')} failed={payload.get('failed')}",  # type: ignore[union-attr]
+            )
+            check(
+                "every batch row names its file and status",
+                all(r.get("filename") and r.get("status") for r in results_list),
+                str(results_list)[:200],
+            )
+            first_id = next((r["invoice_id"] for r in results_list if r.get("invoice_id")), None)
+            check("batch rows carry invoice ids", bool(first_id), str(first_id))
+            if first_id:
+                d = wait_terminal(base, first_id)
+                check(
+                    "batched invoice reaches a terminal state",
+                    bool(d) and d.get("status") in TERMINAL,  # type: ignore[union-attr]
+                    str(d.get("status") if d else None),  # type: ignore[union-attr]
+                )
+    else:
+        check("batch upload samples present", False, str(batch_files))
+
+    print("\n[8] transparency report (/api/audit/summary)")
+    st, summary = get_json(base, "/api/audit/summary", timeout=60)
+    if not (st == 200 and isinstance(summary, dict)):
+        check("GET /api/audit/summary", False, f"HTTP {st}")
+    else:
+        check("GET /api/audit/summary", True, "")
+        check(
+            "summary counts every decision",
+            isinstance(summary.get("total_decisions"), int) and summary["total_decisions"] > 0,  # type: ignore[operator]
+            f"total_decisions={summary.get('total_decisions')}",
+        )
+        check(
+            "summary reports rules that fired",
+            isinstance(summary.get("rules_fired"), list) and len(summary["rules_fired"]) > 0,  # type: ignore[arg-type]
+            str(summary.get("rules_fired"))[:200],
+        )
+        check(
+            "every fired rule carries a count",
+            all(
+                isinstance(r.get("rule"), str) and isinstance(r.get("count"), int) and r["count"] > 0
+                for r in summary.get("rules_fired", [])  # type: ignore[union-attr]
+            ),
+            "",
+        )
+        avg = summary.get("avg_confidence")
+        check(
+            "avg confidence in [0,1]",
+            isinstance(avg, (int, float)) and 0.0 <= float(avg) <= 1.0,
+            str(avg),
+        )
+        rate = summary.get("automation_rate")
+        check(
+            "automation rate in [0,1]",
+            isinstance(rate, (int, float)) and 0.0 <= float(rate) <= 1.0,
+            str(rate),
+        )
+        recent = summary.get("recent") or []
+        check("recent decisions returned", isinstance(recent, list) and len(recent) > 0, str(len(recent)))
+        check(
+            "recent decisions explain themselves",
+            all(
+                (r.get("reasoning") or "").strip()
+                and isinstance(r.get("confidence"), (int, float))
+                and r.get("invoice_id")
+                for r in recent
+            ),
+            "",
+        )
+        check(
+            "decisions grouped by agent",
+            isinstance(summary.get("by_agent"), dict) and len(summary["by_agent"]) > 0,  # type: ignore[arg-type]
+            str(summary.get("by_agent")),
+        )
+
+    print("\n[9] vendors (/api/vendors/)")
+    st, vendors = get_json(base, "/api/vendors/", timeout=60)
+    if not (st == 200 and isinstance(vendors, list)):
+        check("GET /api/vendors/", False, f"HTTP {st}")
+    else:
+        check("GET /api/vendors/", len(vendors) > 0, f"{len(vendors)} vendors")
+        check(
+            "vendor rows carry counts and totals",
+            all(
+                v.get("vendor_name")
+                and isinstance(v.get("invoice_count"), int)
+                and isinstance(v.get("total_amount"), (int, float))
+                for v in vendors
+            ),
+            "",
+        )
+        check(
+            "seeded vendor has settled history",
+            any(v.get("has_history") is True for v in vendors),
+            str([(v.get("vendor_name"), v.get("has_history")) for v in vendors])[:250],
+        )
+
+    print("\n[10] list filters")
+    st, listing = get_json(base, "/api/invoices/?limit=200", timeout=60)
+    ref_vendor = None
+    if st == 200 and isinstance(listing, list) and listing:
+        # rejected documents legitimately have a blank vendor; pick a real one
+        ref_vendor = next(
+            (i.get("vendor_name") for i in listing if i.get("vendor_name")), None
+        )
+    if not ref_vendor:
+        check("invoice list populated", False, f"HTTP {st}")
+    else:
+        check("GET /api/invoices/?limit=200", True, f"{len(listing)} invoices")  # type: ignore[arg-type]
+        st, filtered = get_json(
+            base, f"/api/invoices/?q={urllib.parse.quote(ref_vendor)}", timeout=60
+        )
+        check(
+            "q filter returns only matching vendors",
+            st == 200
+            and isinstance(filtered, list)
+            and len(filtered) > 0
+            and all(ref_vendor.lower() in (i.get("vendor_name") or "").lower() for i in filtered),  # type: ignore[union-attr]
+            f"vendor={ref_vendor} n={len(filtered) if isinstance(filtered, list) else None}",
+        )
+        st, filtered = get_json(base, "/api/invoices/?status=definitely-not-a-status", timeout=60)
+        check(
+            "status filter narrows the list",
+            st == 200 and isinstance(filtered, list) and len(filtered) == 0,  # type: ignore[arg-type]
+            f"HTTP {st} n={len(filtered) if isinstance(filtered, list) else None}",
+        )
 
     total = len(RESULTS)
     passed = sum(1 for _, ok, _ in RESULTS if ok)

@@ -17,6 +17,9 @@ class Settings(BaseSettings):
     opencode_api_key: str = ""
     opencode_session: str = "invoiceflow-dev"
 
+    # Offline deterministic stub — no network, used by CI and `pytest`
+    llm_stub: bool = False
+
     # Per-agent model routing
     llm_vision_model: str = "deepseek-v4.1-flash"
     llm_reasoning_model: str = "deepseek-v4-pro"

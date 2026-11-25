@@ -15,7 +15,7 @@ from fastapi import (
     UploadFile,
 )
 from fastapi.responses import Response
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session
 from sse_starlette.sse import EventSourceResponse
 
@@ -23,6 +23,8 @@ from app.database import SessionLocal, get_db
 from app.models import AuditLog, Invoice, InvoiceStatus
 from app.schemas import (
     AuditLogOut,
+    BatchUploadItem,
+    BatchUploadResponse,
     InvoiceDetail,
     InvoiceSummary,
     InvoiceUploadResponse,
@@ -66,12 +68,13 @@ def _run_pipeline(invoice_id: str, file_path: str, raw_text: str) -> None:
         db.close()
 
 
-@router.post("/upload", response_model=InvoiceUploadResponse, status_code=201)
-async def upload_invoice(
-    background_tasks: BackgroundTasks,
-    file: UploadFile = File(...),
-    db: Session = Depends(get_db),
-) -> InvoiceUploadResponse:
+async def _ingest(db: Session, file: UploadFile) -> Invoice:
+    """Validate, OCR and persist a pending Invoice row for one uploaded file.
+
+    Raises HTTPException(400) for unsupported types and HTTPException(422) when the
+    document has no extractable text. Persistence is committed here so the caller can
+    queue the background pipeline against a real row id.
+    """
     filename = file.filename or "upload.pdf"
     suffix = os.path.splitext(filename)[1].lower() or ".pdf"
     if suffix not in _ALLOWED:
@@ -80,6 +83,9 @@ async def upload_invoice(
         )
 
     content = await file.read()
+    if not content:
+        raise HTTPException(status_code=422, detail=f"{filename}: uploaded file is empty")
+
     fd, path = tempfile.mkstemp(suffix=suffix)
     try:
         with os.fdopen(fd, "wb") as fh:
@@ -87,7 +93,7 @@ async def upload_invoice(
         try:
             raw_text = extract_document_text(path)
         except OCRError as exc:
-            raise HTTPException(status_code=422, detail=str(exc))
+            raise HTTPException(status_code=422, detail=f"{filename}: {exc}")
     finally:
         try:
             os.unlink(path)
@@ -96,7 +102,7 @@ async def upload_invoice(
 
     if not raw_text.strip():
         raise HTTPException(
-            status_code=422, detail="No text could be extracted from the document"
+            status_code=422, detail=f"{filename}: no text could be extracted"
         )
 
     invoice = Invoice(
@@ -110,14 +116,74 @@ async def upload_invoice(
     db.add(invoice)
     db.commit()
     db.refresh(invoice)
+    return invoice
 
-    background_tasks.add_task(_run_pipeline, invoice.id, filename, raw_text)
+
+@router.post("/upload", response_model=InvoiceUploadResponse, status_code=201)
+async def upload_invoice(
+    background_tasks: BackgroundTasks,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+) -> InvoiceUploadResponse:
+    invoice = await _ingest(db, file)
+    background_tasks.add_task(_run_pipeline, invoice.id, invoice.file_path or "", invoice.raw_text or "")
     return InvoiceUploadResponse(invoice_id=invoice.id, status="pending")
 
 
+@router.post("/upload-batch", response_model=BatchUploadResponse, status_code=201)
+async def upload_batch(
+    background_tasks: BackgroundTasks,
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+) -> BatchUploadResponse:
+    """Upload many invoices at once. A bad file does not abort the batch: each result
+    reports its own outcome so the UI can show partial success."""
+    items: list[BatchUploadItem] = []
+    for file in files:
+        name = file.filename or "upload.pdf"
+        try:
+            invoice = await _ingest(db, file)
+        except HTTPException as exc:
+            items.append(
+                BatchUploadItem(filename=name, status="failed", error=str(exc.detail))
+            )
+            continue
+        background_tasks.add_task(
+            _run_pipeline, invoice.id, invoice.file_path or "", invoice.raw_text or ""
+        )
+        items.append(
+            BatchUploadItem(filename=name, invoice_id=invoice.id, status="pending")
+        )
+    accepted = sum(1 for item in items if item.invoice_id)
+    return BatchUploadResponse(
+        accepted=accepted, failed=len(items) - accepted, results=items
+    )
+
+
 @router.get("/", response_model=list[InvoiceSummary])
-def list_invoices(db: Session = Depends(get_db)) -> list[Invoice]:
-    return list(db.execute(select(Invoice).order_by(Invoice.created_at.desc())).scalars())
+def list_invoices(
+    status: str | None = None,
+    q: str | None = None,
+    limit: int = 200,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+) -> list[Invoice]:
+    """List invoices newest-first, optionally filtered by status and a free-text query
+    (invoice number, vendor, or PO number)."""
+    stmt = select(Invoice).order_by(Invoice.created_at.desc())
+    if status:
+        stmt = stmt.where(Invoice.status == status)
+    if q:
+        like = f"%{q.strip().lower()}%"
+        stmt = stmt.where(
+            or_(
+                func.lower(Invoice.vendor_name).like(like),
+                func.lower(Invoice.invoice_number).like(like),
+                func.lower(func.coalesce(Invoice.po_number, "")).like(like),
+            )
+        )
+    stmt = stmt.limit(min(max(limit, 1), 500)).offset(max(offset, 0))
+    return list(db.execute(stmt).scalars())
 
 
 @router.get("/{invoice_id}", response_model=InvoiceDetail)

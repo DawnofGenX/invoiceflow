@@ -106,14 +106,30 @@ echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
 npm run dev                   # http://localhost:3000
 ```
 
-### Tests
+### Tests and CI
 
 ```bash
 cd backend && .venv/bin/python -m pytest tests/ -q
 ```
 
-Four pipeline tests: happy path auto-approve, new-vendor escalation, duplicate → review,
-non-invoice → rejected.
+14 tests, all offline (OCR is real; the LLM is a deterministic stub via `LLM_STUB=1`, which
+`tests/conftest.py` sets automatically):
+
+- 4 pipeline tests — happy path auto-approve, new-vendor escalation, duplicate → review, non-invoice → rejected
+- 10 API tests — health, upload validation (bad type, empty file), batch partial success,
+  list filters, audit-summary explainability assertions, vendor aggregation,
+  JSON/PDF audit export, approval decision round-trip
+
+`scripts/e2e_smoke.py` is the end-to-end proof against a *running* instance. It checks the
+explainability contract, not just status codes — every audit entry must carry non-empty
+reasoning, a confidence in `[0,1]` and the rule that fired:
+
+```bash
+python scripts/e2e_smoke.py --base-url http://localhost --verbose   # 63 checks
+```
+
+CI (`.github/workflows/ci.yml`) runs the pytest suite, `npm run build`, and builds both
+Docker images on every push.
 
 ---
 
@@ -133,6 +149,11 @@ Sample invoices are in `backend/demo-data/sample_invoices/` (regenerate with
 Then open the invoice detail page: the audit-trail timeline shows each agent's reasoning,
 confidence bar, `rule_fired` chip and duration. Export it as JSON or PDF from the same page.
 
+The **Transparency** page (`/audit`) aggregates the same data across the whole ledger:
+decisions logged, automation rate, average confidence, which rules fired and how often,
+decisions per agent, the newest decisions verbatim, and every vendor with an
+`established` / `new — verify` badge.
+
 ---
 
 ## API
@@ -140,7 +161,10 @@ confidence bar, `rule_fired` chip and duration. Export it as JSON or PDF from th
 | Method | Path | Purpose |
 |---|---|---|
 | POST | `/api/invoices/upload` | Upload PDF/image → runs the pipeline |
-| GET | `/api/invoices/` | List invoices |
+| POST | `/api/invoices/upload-batch` | Multi-file upload (`files[]`) → per-file accepted/failed results |
+| GET | `/api/invoices/?status=&q=&limit=&offset=` | List invoices, filtered by status or free-text (vendor / invoice no. / PO) |
+| GET | `/api/audit/summary` | Transparency report: decisions, rules fired, automation rate, recent decisions |
+| GET | `/api/vendors/` | Vendor aggregation incl. `has_history` (why new vendors get reviewed) |
 | GET | `/api/invoices/{id}` | Invoice + line items + audit entries |
 | GET | `/api/invoices/{id}/audit` | Audit trail only |
 | GET | `/api/invoices/{id}/audit/export?format=json\|pdf` | Audit-ready export |

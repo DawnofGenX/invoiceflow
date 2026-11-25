@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { api, type DashboardStats, type InvoiceSummary } from "@/lib/api";
 import { fmtMoney } from "@/lib/format";
@@ -12,6 +12,27 @@ export default function DashboardPage() {
   const [invoices, setInvoices] = useState<InvoiceSummary[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [seeding, setSeeding] = useState(false);
+  const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+
+  const visible = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return invoices.filter((inv) => {
+      const matchesStatus =
+        statusFilter === "all" || inv.status === statusFilter;
+      if (!matchesStatus) return false;
+      if (!needle) return true;
+      return [inv.invoice_number, inv.vendor_name, inv.po_number ?? ""]
+        .join(" ")
+        .toLowerCase()
+        .includes(needle);
+    });
+  }, [invoices, query, statusFilter]);
+
+  const statusOptions = useMemo(() => {
+    const seen = new Set(invoices.map((i) => i.status));
+    return ["all", ...Array.from(seen).sort()];
+  }, [invoices]);
 
   const load = useCallback(async () => {
     try {
@@ -106,7 +127,32 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      <InvoiceTable invoices={invoices} />
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-xs text-zinc-500">
+          Showing {visible.length} of {invoices.length} invoices
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search invoice, vendor or PO…"
+            className="w-56 rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 placeholder:text-zinc-600 focus:border-emerald-500 focus:outline-none"
+          />
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="rounded-lg border border-zinc-700 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-200 focus:border-emerald-500 focus:outline-none"
+          >
+            {statusOptions.map((s) => (
+              <option key={s} value={s}>
+                {s === "all" ? "All statuses" : s.replace(/_/g, " ")}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+
+      <InvoiceTable invoices={visible} />
     </div>
   );
 }

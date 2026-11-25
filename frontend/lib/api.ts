@@ -79,6 +79,53 @@ export interface DashboardStats {
   auto_approved: number;
 }
 
+export interface RecentDecision {
+  id: string;
+  invoice_id: string;
+  invoice_number: string;
+  vendor_name: string;
+  agent: string;
+  action: string;
+  reasoning: string;
+  rule_fired: string | null;
+  confidence: number;
+  duration_ms: number;
+  created_at: string;
+}
+
+export interface AuditSummary {
+  total_decisions: number;
+  decisions_per_invoice: number;
+  by_agent: Record<string, number>;
+  rules_fired: Array<{ rule: string; count: number }>;
+  avg_confidence: number | null;
+  low_confidence_threshold: number;
+  low_confidence_count: number;
+  total_invoices: number;
+  automated_invoices: number;
+  human_review_invoices: number;
+  automation_rate: number;
+  by_status: Record<string, number>;
+  recent: RecentDecision[];
+}
+
+export interface VendorRow {
+  vendor_name: string;
+  invoice_count: number;
+  settled_count: number;
+  total_amount: number;
+  avg_confidence: number | null;
+  last_seen: string | null;
+  has_history: boolean;
+}
+
+export interface BatchUploadResult {
+  filename: string;
+  invoice_id: string | null;
+  status: string;
+  error: string | null;
+}
+
 export interface AgentEvent {
   type: string;
   agent?: string;
@@ -106,7 +153,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const api = {
   dashboard: () => request<DashboardStats>("/api/dashboard/"),
-  listInvoices: () => request<InvoiceSummary[]>("/api/invoices/"),
+  listInvoices: (params?: { status?: string; q?: string }) => {
+    const qs = new URLSearchParams();
+    if (params?.status) qs.set("status", params.status);
+    if (params?.q) qs.set("q", params.q);
+    const suffix = qs.toString() ? `?${qs}` : "";
+    return request<InvoiceSummary[]>(`/api/invoices/${suffix}`);
+  },
+  auditSummary: () => request<AuditSummary>("/api/audit/summary"),
+  vendors: () => request<VendorRow[]>("/api/vendors/"),
   getInvoice: (id: string) => request<InvoiceDetail>(`/api/invoices/${id}`),
   getAudit: (id: string) => request<AuditEntry[]>(`/api/invoices/${id}/audit`),
   listApprovals: () => request<ApprovalRequest[]>("/api/approvals/"),
@@ -124,6 +179,14 @@ export const api = {
     fd.append("file", file);
     return request<{ invoice_id: string; status: string }>(
       "/api/invoices/upload",
+      { method: "POST", body: fd },
+    );
+  },
+  uploadBatch: async (files: File[]) => {
+    const fd = new FormData();
+    files.forEach((f) => fd.append("files", f));
+    return request<{ accepted: number; failed: number; results: BatchUploadResult[] }>(
+      "/api/invoices/upload-batch",
       { method: "POST", body: fd },
     );
   },

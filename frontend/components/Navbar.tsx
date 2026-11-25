@@ -7,6 +7,7 @@ const links = [
   { href: "/", label: "Dashboard" },
   { href: "/upload", label: "Upload" },
   { href: "/approvals", label: "Approvals" },
+  { href: "/audit", label: "Transparency" },
 ];
 
 export default function Navbar() {
