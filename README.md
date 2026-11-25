@@ -1,19 +1,180 @@
 # InvoiceFlow
 
-Open-source, explainable multi-agent accounts payable platform.
+**The open-source, explainable multi-agent accounts payable platform.**
 
-InvoiceFlow ingests invoices (PDF / image / email), routes them through a pipeline of specialized agents, and — uniquely — shows you **why** every decision was made. Every approval, rejection, or flag ships with a full audit trail: the natural-language reasoning, a confidence score, and the exact rule or risk signal that fired.
+InvoiceFlow ingests invoices (PDF or image), routes them through a pipeline of specialized
+agents, and — uniquely — shows you **why** every decision was made. Every approval, rejection
+or flag ships with a full audit trail: the agent's natural-language reasoning, a calibrated
+confidence score, and the exact rule or risk signal that fired.
 
-## What it is
+Existing AP tools log *what* happened (approved / paid / rejected). InvoiceFlow explains *why* —
+which is what auditors ask for before an automated control output is accepted as audit evidence
+(an unexplained output is not sufficient evidence: the control has to be documented and testable).
 
-- **Explainable by design** — the audit trail is the product, not an afterthought. Each agent decision is traceable and exportable (JSON + PDF) for audit-readiness.
-- **Multi-agent architecture** — intake, extraction, validation, approval, and orchestration agents coordinate over a shared workflow.
-- **Open-source** — MIT licensed. An open-source alternative to Stampli / BILL.
+---
 
-## Status
+## Why this exists
 
-Built for the Zyrelyx Global AI Hackathon (Dec 1–7, 2026). All application code is written during the hackathon window.
+| | Incumbent AP suites (BILL, Stampli, Ramp, Melio) | InvoiceFlow |
+|---|---|---|
+| Invoice capture + approval | ✅ | ✅ |
+| Payment execution | ✅ (their revenue) | ✗ (mock status — deliberately out of scope) |
+| Per-decision natural-language reasoning | ✗ | ✅ |
+| Confidence score per decision | ✗ | ✅ |
+| `rule_fired` — the exact rule/risk signal | ✗ | ✅ (e.g. `po_match`, `duplicate_detected`, `new_vendor_verification`) |
+| Audit export (JSON + PDF) | partial | ✅ |
+| Open source | ✗ | ✅ MIT |
 
-## Stack (planned)
+---
 
-FastAPI + Next.js + PostgreSQL · LangGraph orchestration · Tesseract OCR · Docker Compose
+## Architecture
+
+```
+                 ┌──────────────────────────────────────────────────────────┐
+  PDF / image ──▶│  FastAPI  POST /api/invoices/upload                      │
+                 └───────────────────────────┬──────────────────────────────┘
+                                             │ BackgroundTask
+                                 ┌───────────▼────────────┐
+                                 │ LangGraph StateGraph   │
+                                 │  (app/agents/          │
+                                 │   orchestrator.py)     │
+                                 └───────────┬────────────┘
+        ┌────────────────┬───────────────────┼───────────────────┬───────────────────┐
+        ▼                ▼                   ▼                   ▼                   ▼
+   ┌─────────┐    ┌──────────────┐    ┌──────────────┐    ┌──────────────┐   ┌──────────────┐
+   │ intake  │───▶│  extraction  │───▶│  validation  │───▶│   approval   │──▶│  payment     │
+   │ classify│    │ LLM → JSON   │    │ 5 rule       │    │ amount +     │   │ (mock status)│
+   │ (LLM)   │    │ + line items │    │ checks       │    │ vendor rules │   │              │
+   └────┬────┘    └──────┬───────┘    └──────┬───────┘    └──────┬───────┘   └──────────────┘
+        │                │                   │                   │
+        └────────────────┴───────────────────┴───────────────────┘
+                             every node writes AuditLog
+                    (reasoning, confidence, rule_fired, input/output, duration_ms)
+                                             │
+                             ┌───────────────▼────────────────┐
+                             │  EventBus → SSE /stream        │  live agent feed in the UI
+                             └────────────────────────────────┘
+```
+
+### Agents
+
+| Agent | File | What it decides | Explainability artifact |
+|---|---|---|---|
+| Intake | `backend/app/agents/intake.py` | Is this even an invoice? | `classify_document` + confidence |
+| Extraction | `backend/app/agents/extraction.py` | Vendor, number, amount, dates, PO, line items | `extract_fields` + per-field confidence |
+| Validation | `backend/app/agents/validation.py` | PO match, line-item match, duplicate, amount math, anomalies | 5 separate audit entries, each with `rule_fired` |
+| Approval | `backend/app/agents/approval.py` | Auto-approve / route by amount / force review for new vendors | `route_approval` + threshold rule name |
+| Orchestrator | `backend/app/agents/orchestrator.py` | Graph control flow + final status | `finalize` |
+
+Validation rules, in order: `po_match` → `line_item_compare` → `duplicate_check` →
+`amount_verification` → `anomaly_check` (`new_vendor`, `amount_3x_average`).
+Any `high`/`block` severity issue routes the invoice to `needs_review` instead of payment.
+
+Approval thresholds (seeded on first run in `ApprovalRule`):
+`< $500` auto-approve · `$500–$5,000` manager · `$5,000–$10,000` admin · `> $10,000` dual.
+A new vendor always forces manual verification regardless of amount.
+
+---
+
+## Quick start (Docker)
+
+```bash
+git clone https://github.com/DawnofGenX/invoiceflow.git
+cd invoiceflow
+cp .env.example .env          # add your OPENCODE_API_KEY
+docker compose up -d --build
+curl -X POST http://localhost/api/seed/     # 3 POs + 3 historical invoices
+open http://localhost
+```
+
+Three containers: `backend` (FastAPI :8000), `frontend` (Next.js :3000), `nginx` (:80,
+`/api` → backend, `/` → frontend, SSE-safe: `proxy_buffering off`).
+
+### Local dev (no Docker)
+
+```bash
+# backend
+cd backend
+uv venv --python 3.12 && uv pip install --python .venv/bin/python -r requirements.txt
+cp .env.example .env          # add your OPENCODE_API_KEY
+.venv/bin/uvicorn app.main:app --reload --port 8000
+
+# frontend
+cd frontend
+npm install
+echo 'NEXT_PUBLIC_API_URL=http://localhost:8000' > .env.local
+npm run dev                   # http://localhost:3000
+```
+
+### Tests
+
+```bash
+cd backend && .venv/bin/python -m pytest tests/ -q
+```
+
+Four pipeline tests: happy path auto-approve, new-vendor escalation, duplicate → review,
+non-invoice → rejected.
+
+---
+
+## Try the explainability
+
+Sample invoices are in `backend/demo-data/sample_invoices/` (regenerate with
+`python backend/demo-data/generate_samples.py`):
+
+| File | Expected outcome |
+|---|---|
+| `sample-clean.pdf` | $450 Acme, PO-1042 matches → auto-approve → `payment_scheduled` |
+| `sample-new-vendor.pdf` | Nova Robotics, unseen vendor → `awaiting_approval` (manual verification) |
+| `sample-duplicate.pdf` | Repeats INV-2024-000 → `needs_review` (`duplicate_detected`) |
+| `sample-high-value.pdf` | Cobalt $8,750 → routed to admin approval |
+| `sample-contract.pdf` | Not an invoice → `rejected` (`not_an_invoice`) |
+
+Then open the invoice detail page: the audit-trail timeline shows each agent's reasoning,
+confidence bar, `rule_fired` chip and duration. Export it as JSON or PDF from the same page.
+
+---
+
+## API
+
+| Method | Path | Purpose |
+|---|---|---|
+| POST | `/api/invoices/upload` | Upload PDF/image → runs the pipeline |
+| GET | `/api/invoices/` | List invoices |
+| GET | `/api/invoices/{id}` | Invoice + line items + audit entries |
+| GET | `/api/invoices/{id}/audit` | Audit trail only |
+| GET | `/api/invoices/{id}/audit/export?format=json\|pdf` | Audit-ready export |
+| GET | `/api/invoices/{id}/stream` | SSE live agent events |
+| GET | `/api/approvals/` | Pending approval queue |
+| POST | `/api/approvals/{id}/decide` | `{"decision":"approve"\|"reject","comment":"..."}` |
+| GET | `/api/dashboard/` | Totals, by-status counts, pending/needs-review |
+| POST | `/api/seed/` | Idempotent demo seed |
+| GET | `/api/health` | Health probe |
+
+---
+
+## Model routing
+
+All LLM calls go through one OpenAI-compatible endpoint (`opencode-go`), configurable per agent:
+
+| Env | Agent | Default |
+|---|---|---|
+| `LLM_CLASSIFY_MODEL` | intake classification | `qwen3.8-flash` |
+| `LLM_REASONING_MODEL` | extraction | `deepseek-v4-pro` |
+| `LLM_VISION_MODEL` | future vision OCR | `deepseek-v4.1-flash` |
+
+The client (`backend/app/services/llm.py`) sends `x-opencode-session` (required by the
+gateway) and requests `response_format={"type":"json_object"}` with a `{...}` fallback parse.
+
+---
+
+## Deliberate non-goals
+
+- **No payment execution.** Status goes to `payment_scheduled` against a mock `Payment` row.
+  Real money movement is regulated and is where incumbents make their margin.
+- **No email-forwarding inbox.** Cut on purpose; upload is the demo path.
+- **No multi-tenant auth.** Single-workspace demo deployment for judging.
+
+## License
+
+MIT — see `LICENSE`.
