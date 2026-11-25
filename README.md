@@ -163,13 +163,24 @@ Sample invoices are in `backend/demo-data/sample_invoices/` (regenerate with
 | `sample-high-value.pdf` | Cobalt $8,750 → routed to admin approval |
 | `sample-contract.pdf` | Not an invoice → `rejected` (`not_an_invoice`) |
 
-Then open the invoice detail page: the audit-trail timeline shows each agent's reasoning,
-confidence bar, `rule_fired` chip and duration. Export it as JSON or PDF from the same page.
+Then open the record: the confirmation slip prints each agent's decision line in order —
+agent, action, the rule that fired, confidence, duration and the reasoning sentence
+verbatim. Export it as JSON or PDF from the same page.
 
-The **Transparency** page (`/audit`) aggregates the same data across the whole ledger:
+The **Evidence** page (`/audit`) aggregates the same data across the whole ledger:
 decisions logged, automation rate, average confidence, which rules fired and how often,
-decisions per agent, the newest decisions verbatim, and every vendor with an
-`established` / `new — verify` badge.
+decisions per agent, the newest decisions verbatim, and every vendor stamped
+`established` or `new — verify`.
+
+## Design
+
+The interface is built as a confirmation register rather than a KPI dashboard: a pale
+print ground under an ink-green rail, 1px rules instead of cards, and disposition shown
+as a stamped token (SETTLED / HELD / VOID) instead of a coloured pill. Archivo sets
+labels and prose; Sometype Mono sets every reference, amount, timestamp and confidence.
+`DESIGN.md` records the tokens and rules (with `.impeccable/design.json` as the
+machine-readable sidecar); read it before adding a screen so new surfaces stay in the
+same world.
 
 ---
 
