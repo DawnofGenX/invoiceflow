@@ -13,6 +13,18 @@ which is what auditors ask for before an automated control output is accepted as
 
 ---
 
+## Live demo
+
+Running right now on a small VM, deployed from this repo with `docker compose up -d --build`:
+
+- **<https://kit-commerce-posts-letters.trycloudflare.com>** — temporary Cloudflare tunnel
+  (the VM's inbound port 80 is not open yet; the tunnel is a stopgap, not the production URL).
+
+Start at **Transparency**, upload any file from `backend/demo-data/sample_invoices/`, and watch the
+agents stream their decisions live. No signup, no seeding required — the DB ships with demo history.
+
+---
+
 ## Why this exists
 
 | | Incumbent AP suites (BILL, Stampli, Ramp, Melio) | InvoiceFlow |
