@@ -138,7 +138,8 @@ SEEDED=$(curl -fsS -m 10 -X POST "http://127.0.0.1:$PORT/api/seed/" || echo '{}'
 echo "    $SEEDED"
 curl -fsS -m 10 "http://127.0.0.1:$PORT/api/dashboard/" | sed 's/^/    /'
 echo
+BASE="http://127.0.0.1"; [ "$PORT" = "80" ] || BASE="http://127.0.0.1:$PORT"
 printf '\033[1mDone.\033[0m The stack is running behind nginx on port %s.\n' "$PORT"
-echo "    local check : curl -s http://127.0.0.1:$PORT/api/health"
-echo "    public check: curl -s http://<vm-public-ip>:$PORT/api/health   (needs the NSG/firewall port open)"
-echo "    full verify : python3 scripts/e2e_smoke.py --base-url http://<vm-public-ip>:$PORT --verbose"
+echo "    local check : curl -s $BASE/api/health"
+echo "    public check: curl -s http://<vm-public-ip>${BASE#http://127.0.0.1}/api/health   (needs the NSG/firewall port open)"
+echo "    full verify : python3 scripts/e2e_smoke.py --base-url http://<vm-public-ip>${BASE#http://127.0.0.1} --verbose"
