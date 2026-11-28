@@ -94,8 +94,67 @@ sentence with Void/Approve stamps. The design system moved to `DESIGN.md` +
   strategy, not scope failure.
 - Email forwarding was cut before it was written; upload is the demo path.
 - `pytest-asyncio` warns about default fixture loop scope on every suite run
-  (`_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET`). Cosmetic; 19/19 pass around it; not worth a
+  (`_DEFAULT_FIXTURE_LOOP_SCOPE_UNSET`). Cosmetic; 31/31 pass around it; not worth a
   dependency bump mid-sprint.
 - The offline LLM stub (`LLM_STUB=1`, `backend/app/services/llm.py`) is not a model —
   it parses the prompt deterministically. It exists so CI, `pytest`, and a judge
   without an API key all run the same pipeline. Documented as a stub, never sold as AI.
+
+## 9. The record contradicted its own decision trail
+
+Recording the demo video was what exposed this. Reading the frame of the invoice
+record, the MATCH column said `unmatched` on every line — while the audit trail on
+the same screen said *"All 2 line items match the PO"*. Two contradictory statements
+about the same invoice, on the same page, and the demo was about to show it to judges.
+
+**Cause:** `LineItem.matched_po_line_id` was never written by any code path. The
+validation agent called `compare_line_items()` and threw the result away — the
+comparison happened, the verdict was computed, and then it was discarded.
+
+**Fix (commit `3eb0bd8`):** `compare_line_items()` now returns the list of lines that
+matched, and validation writes each PO line reference onto the invoice's own
+line-item rows. The pairing is by **content**, not by position: the `line_items`
+relationship has no `order_by`, so index-based pairing could mislabel a line after a
+DB round-trip (verified: order came back `['Zeta', 'Alpha']`). Numbers are compared
+as `Decimal` so the extractor's `10.0` and the stored `Decimal("10.00")` are the
+same key.
+
+**The hole this opened up:** the matcher had only ever compared *unit price* and
+*quantity* against the PO — never the line's own arithmetic. A line printed as
+`10 x $15.00 = $190.00` passed every check while quietly inflating the invoice by
+$40. Each line must now agree with itself before it can agree with the PO, and the
+failure names the offending line instead of counting it:
+
+```
+Line total $190.00 does not equal 10.00 x $15.00 ($150.00)
+```
+
+## 10. One rule, two spellings
+
+The "rules that fired" table counted the auto-approval rule twice. The seeded
+`ApprovalRule` is named `auto-approve`; the orchestrator emits `auto_approve`. Both
+landed in `rule_fired`. Every other token in the trail (`po_match`,
+`duplicate_detected`, `new_vendor_verification`) is a machine token, so the approval
+agent now canonicalises rule names the same way: `auto-approve` → `auto_approve`.
+
+## 11. A grid child stretched into an empty pane
+
+The intake screen's right-hand aside was a plain grid child, and grid children
+stretch by default. After a live run the left column grew to ~1337px, so the aside
+stretched to match — a 1337px-tall bordered box with ~500px of blank white below its
+last line. It read as an unfinished UI in the demo frame.
+
+**Fix (commit `9df69a1`):** `self-start` on the aside, the same pattern the register
+and audit screens already used for their side columns. Aside height 747px → 243px;
+empty tail 500px → 13px.
+
+## 12. A 1080p video has no mouse pointer
+
+Chromium's video capture does not record the pointer, so every scene of the first
+takes had a demo with invisible hands. Injecting a cursor overlay hit two bugs in
+sequence: the init script appended the dot before `document.body` existed (so the
+element was never created, and the "already done" flag short-circuited every later
+injection), and under the root-CSS zoom the pointer was scaled twice — 566px right
+and 561px down from the real position. Fixed by guarding on `document.body` and
+dividing the pointer coordinates by the current zoom factor. Drift after the fix:
+0.0px horizontally, 0.7px vertically.

@@ -131,7 +131,7 @@ npm run dev                   # http://localhost:3000
 cd backend && .venv/bin/python -m pytest tests/ -q
 ```
 
-25 tests, all offline (OCR is real; the LLM is a deterministic stub via `LLM_STUB=1`, which
+31 tests, all offline (OCR is real; the LLM is a deterministic stub via `LLM_STUB=1`, which
 `tests/conftest.py` sets automatically):
 
 - 4 pipeline tests — happy path auto-approve, new-vendor escalation, duplicate → review, non-invoice → rejected
@@ -140,6 +140,11 @@ cd backend && .venv/bin/python -m pytest tests/ -q
   JSON/PDF audit export, approval decision round-trip
 - 5 maintenance tests — reset endpoint gating (disabled → 404, wrong token → 403), harness-only
   deletion, second-run idempotency, genuine duplicates still flagged after a reset
+- 6 LLM-resilience tests — bounded retry on 429/5xx/timeouts, permanent 4xx never retried,
+  `Retry-After` honoured, deterministic fallback with `rule_fired = llm_unavailable`
+- 6 line-item tests — a PO match survives onto the record's MATCH column, a mismatched line
+  stays unmatched, a line whose quantity × unit price contradicts its own printed total is
+  rejected and named, one canonical rule token, money printed with cents
 
 `scripts/e2e_smoke.py` is the end-to-end proof against a *running* instance. It checks the
 explainability contract, not just status codes — every audit entry must carry non-empty
@@ -177,7 +182,7 @@ Expect `63/63 checks passed` (64 with `E2E_RESET_TOKEN` set — see the reset no
 Then open <http://localhost>, upload `backend/demo-data/sample_invoices/sample-clean.pdf`,
 and read the confirmation slip on the invoice record. To run the test suite without Docker,
 without network and without a key: `cd backend && LLM_STUB=1 ./.venv/bin/python -m pytest tests/ -q`
-(25 passed). Commands verified against `docker-compose.yml`, `scripts/e2e_smoke.py`
+(31 passed). Commands verified against `docker-compose.yml`, `scripts/e2e_smoke.py`
 (`--base-url`, `--samples`, `--verbose`) and `DEPLOY.md`.
 
 ---

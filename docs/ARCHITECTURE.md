@@ -199,7 +199,7 @@ python3 scripts/e2e_smoke.py --base-url http://localhost --verbose   # 63/64 che
 
 # No Docker, no network, no key
 cd backend && uv venv --python 3.12 && uv pip install --python .venv/bin/python -r requirements.txt
-LLM_STUB=1 ./.venv/bin/python -m pytest tests/ -q                    # 25 passed
+LLM_STUB=1 ./.venv/bin/python -m pytest tests/ -q                    # 31 passed
 ./.venv/bin/uvicorn app.main:app --reload --port 8000
 ```
 

@@ -66,7 +66,7 @@ public ingress through a Tailscale Funnel because the Azure NSG exposes only SSH
 Prove it yourself instead: `docker compose up -d --build`, then
 `python3 scripts/e2e_smoke.py --base-url <url> --verbose` → 63 checks (64 with the
 harness reset enabled) asserting the explainability contract end to end. Backend suite:
-25 tests, offline, `25 passed`.
+31 tests, offline, `31 passed`.
 
 ## Built during the sprint
 
