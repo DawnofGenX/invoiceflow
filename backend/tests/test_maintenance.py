@@ -39,9 +39,9 @@ def _upload(client: TestClient, name: str, as_name: str | None = None) -> str:
     return res.json()["invoice_id"]
 
 
-def test_reset_endpoint_disabled_without_token(client):
+def test_reset_endpoint_disabled_without_token(client, monkeypatch):
     """No configured token -> the endpoint must not exist."""
-    assert settings.e2e_reset_token == ""
+    monkeypatch.setattr(settings, "e2e_reset_token", "")
     res = client.post("/api/maintenance/reset-e2e")
     assert res.status_code == 404
 
