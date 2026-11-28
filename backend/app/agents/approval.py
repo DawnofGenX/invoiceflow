@@ -22,6 +22,18 @@ _DEFAULT_RULES = [
 ]
 
 
+def _rule_token(name: str) -> str:
+    """Canonical machine token for a rule name.
+
+    `rule_fired` is a machine token everywhere else in the trail
+    (`po_match`, `duplicate_detected`, `new_vendor_verification`), but the
+    seeded approval rules carry human labels ("auto-approve"). Emitting the
+    label verbatim split one rule across two spellings, so the "rules that
+    fired" table counted the same rule twice.
+    """
+    return name.strip().replace("-", "_").replace(" ", "_").lower()
+
+
 def _ensure_rules(db: Session) -> list[ApprovalRule]:
     rules = list(db.execute(select(ApprovalRule).order_by(ApprovalRule.priority)).scalars())
     if rules:
@@ -109,7 +121,7 @@ def run(state: dict, db: Session) -> dict:
                 agent_name="approval",
                 action="route_approval",
                 reasoning=decision["reason"],
-                rule_fired=matched.name,
+                rule_fired=_rule_token(matched.name),
                 confidence=1.0,
                 input_data={"amount": str(amount)},
                 output_data={"decision": "auto_approve"},
@@ -135,7 +147,7 @@ def run(state: dict, db: Session) -> dict:
                 agent_name="approval",
                 action="route_approval",
                 reasoning=decision["reason"],
-                rule_fired=matched.name,
+                rule_fired=_rule_token(matched.name),
                 confidence=1.0,
                 input_data={"amount": str(amount)},
                 output_data={"decision": "routed", "approver_role": matched.approver_role},

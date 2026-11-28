@@ -32,6 +32,83 @@ def _vendor_history(db: Session, vendor_name: str, invoice_id: str) -> tuple[boo
     return False, sum(amounts, Decimal("0")) / len(amounts)
 
 
+def _money(value: Decimal | int) -> str:
+    """Render money with two decimals.
+
+    Money reaches the validator as a float (the extractor parses "150.00" out
+    of the document), so `Decimal("150.0") + Decimal("300.0")` renders as
+    "$450.0" - money printed without its cents.
+    """
+    return f"{value:.2f}"
+
+
+def _line_key(item: dict) -> tuple:
+    """Content key for an invoice line, used to pair it with its stored row.
+
+    The matcher works on the extracted list (authoritative order); the record
+    renders the stored LineItem rows. Pairing them by content rather than by
+    position means a re-ordered relationship can never mislabel a line.
+
+    Numbers are compared as Decimals: the extractor yields floats (10.0) while
+    the stored rows hold Decimals (Decimal("10.00")).
+    """
+    return (
+        po_matcher._norm(str(item.get("description") or "")),
+        _num_key(item.get("quantity")),
+        _num_key(item.get("unit_price")),
+        _num_key(item.get("total")),
+    )
+
+
+def _num_key(value) -> str:
+    """Normalise a number for content comparison (150.0 == 150.00)."""
+    if value is None:
+        return ""
+    decimal = po_matcher._to_decimal(value)
+    if decimal is None:
+        return str(value).strip()
+    return f"{decimal.normalize():f}"
+
+
+def _stored_line_key(item) -> tuple:
+    return (
+        po_matcher._norm(item.description or ""),
+        _num_key(item.quantity),
+        _num_key(item.unit_price),
+        _num_key(item.total),
+    )
+
+
+def _apply_po_line_matches(invoice: Invoice, li_compare: dict) -> None:
+    """Write the PO line reference onto each matched invoice line item.
+
+    `compare_line_items` returns the index of every invoice line that matched
+    a PO line within tolerance. The record's MATCH column reads
+    `LineItem.matched_po_line_id`, so without this the record always said
+    "unmatched". Line items that did not match are explicitly cleared, so a
+    stale reference can never survive a re-run.
+    """
+    matched_by_index = {m["index"]: m.get("po_line_id") for m in li_compare.get("matches") or []}
+    extracted = (invoice.extracted_data or {}).get("line_items") or []
+
+    # Pair stored rows with extracted lines by content, not by position.
+    rows_by_key: dict[tuple, list] = {}
+    for row in invoice.line_items:
+        rows_by_key.setdefault(_stored_line_key(row), []).append(row)
+
+    for index, item in enumerate(extracted):
+        pool = rows_by_key.get(_line_key(item))
+        row = pool.pop(0) if pool else None
+        if row is None:
+            continue
+        row.matched_po_line_id = matched_by_index.get(index)
+
+    # Any stored row with no extracted counterpart stays unmatched.
+    for row in invoice.line_items:
+        if not row.matched_po_line_id:
+            row.matched_po_line_id = None
+
+
 def run(state: dict, db: Session) -> dict:
     invoice_id = state["invoice_id"]
     invoice = db.get(Invoice, invoice_id)
@@ -82,6 +159,7 @@ def run(state: dict, db: Session) -> dict:
         ).scalar_one_or_none()
         po_items = [
             {
+                "id": li.id,
                 "description": li.description,
                 "quantity": str(li.quantity),
                 "unit_price": str(li.unit_price),
@@ -91,6 +169,11 @@ def run(state: dict, db: Session) -> dict:
         ]
         li_compare = po_matcher.compare_line_items(line_items, po_items)
         checks["line_item_compare"] = li_compare
+        # Persist the match onto the invoice's own line-item rows so the record
+        # and the decision trail agree. Without this the record rendered every
+        # row as "unmatched" while the trail said "All 2 line items match the
+        # PO" - two contradictory statements about the same invoice.
+        _apply_po_line_matches(invoice, li_compare)
         record_audit(
             db,
             invoice_id=invoice_id,
@@ -152,8 +235,8 @@ def run(state: dict, db: Session) -> dict:
             agent_name="validation",
             action="amount_verification",
             reasoning=(
-                f"Line items sum to ${line_sum} vs invoice total ${amount} "
-                + ("(match)" if amt_ok else f"(mismatch by ${diff})")
+                f"Line items sum to ${_money(line_sum)} vs invoice total ${_money(amount)} "
+                + ("(match)" if amt_ok else f"(mismatch by ${_money(diff)})")
             ),
             rule_fired=None if amt_ok else "line_sum_mismatch",
             confidence=1.0 if amt_ok else 0.0,
@@ -165,7 +248,7 @@ def run(state: dict, db: Session) -> dict:
                 {
                     "check": "amount_verification",
                     "severity": "high",
-                    "reason": f"Line items sum ${line_sum} != total ${amount}",
+                    "reason": f"Line items sum ${_money(line_sum)} != total ${_money(amount)}",
                 }
             )
 
