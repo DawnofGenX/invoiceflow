@@ -1,0 +1,82 @@
+Narration script for the InvoiceFlow demo video (Zyrelyx Global AI Hackathon).
+
+Every claim below is checked against a real run of the live deployment
+(https://hermes-vm.tailfd1655.ts.net) recorded with scripts/record_demo.py.
+Scene keys match the recorder's scene names.
+
+Measured footage for the seven live scenes is 106s; at 133 words per minute the
+script below is ~340 words (~154s of speech), so the builder pads each scene to
+its narration length instead of cutting a sentence in half.
+
+
+[title]      29 words
+Accounts payable software decides whether to pay an invoice.
+BILL, Stampli, Ramp, Melio, Rossum - none of them will tell you why.
+InvoiceFlow prints the reason with every decision.
+
+
+[problem]    28 words
+A controller who cannot reconstruct a decision cannot sign the batch.
+Audit standards ask for the reasoning, not the outcome.
+So InvoiceFlow is a register, not a queue.
+
+
+[register]   29 words
+This is the register.
+Every invoice the pipeline has seen, with its disposition:
+settled, held, voided, or flagged.
+Read it like a ledger, because that is what it is.
+
+
+[settle]     43 words
+Drop in an invoice. Four agents take it in turn.
+Intake classifies it, extraction pulls the fields, validation runs five checks in order.
+This one is clean, so it settles under the threshold.
+And every step printed its reasoning as it went.
+
+
+[record]     37 words
+This is the record it wrote.
+Not a status badge - a decision.
+Which rule fired, how confident the agent was, and the sentence that explains it.
+Served from the audit table, not reconstructed afterwards.
+
+
+[duplicate]  41 words
+Now the case that should never be paid twice.
+The same invoice arrives again.
+The duplicate rule catches it on the fourth check and closes it as flagged for review.
+The system did not silently reject it, and it did not silently pay it.
+
+
+[hold]       38 words
+This one is different.
+Every validation check passed - the document is clean.
+But the vendor is new, and a new vendor never settles on its own.
+The approval agent holds it for verification and prints the reason.
+
+
+[held]       29 words
+Here is the human queue.
+Every item carries the sentence that stopped it.
+Not a vague error - the actual decision, in words.
+
+
+[evidence]   31 words
+And the whole thing is auditable.
+Every rule that has fired across the register, counted:
+po match, line items, duplicate, validation, new vendor.
+Alongside the automation rate and the average confidence.
+
+
+[architecture] 27 words
+Underneath it is one LangGraph state machine.
+Each node commits its own audit rows as it goes, so a failure halfway
+still leaves the completed steps visible.
+
+
+[outro]      29 words
+Upload an invoice.
+Watch four agents reason in writing.
+Read the rule that fired, the confidence, and the sentence that stopped it.
+The source is on GitHub, MIT licensed.
