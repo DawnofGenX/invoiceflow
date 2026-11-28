@@ -4,6 +4,7 @@ CRITICAL: opencode-go requires an `x-opencode-session` header (any non-empty
 string). Without it every request returns HTTP 400 "MissingSessionID".
 """
 import json
+import random
 import re
 import time
 from decimal import Decimal, InvalidOperation
@@ -14,11 +15,20 @@ import httpx
 from app.config import settings
 
 _CHAT_ENDPOINT = "/chat/completions"
-
+_BACKOFF_CAP_SECONDS = 30.0
 
 
 class LLMError(Exception):
     """Raised when the LLM call fails or returns an unusable payload."""
+
+
+class LLMUnavailableError(LLMError):
+    """Upstream stayed down past the bounded retry budget.
+
+    Subclass of LLMError so existing `except llm.LLMError` call sites keep
+    working; callers that want to degrade gracefully catch this to produce a
+    deterministic low-confidence fallback instead of failing the request.
+    """
 
 
 def _headers() -> dict[str, str]:
@@ -29,21 +39,105 @@ def _headers() -> dict[str, str]:
     }
 
 
-def _post(payload: dict[str, Any], timeout: float) -> tuple[dict, int]:
+def _transient(status_code: int) -> bool:
+    """429 and 5xx are retryable; every other status is permanent."""
+    return status_code == 429 or status_code >= 500
+
+
+def fallback_classify(text: str) -> dict[str, Any]:
+    """Deterministic classification used when the upstream LLM is unavailable.
+
+    Mirrors the stub's structural heuristics but flags itself as degraded
+    (rule_fired marker + low confidence) so the audit trail never hides it.
+    """
+    result = _stub_classify(text)
+    return {**result, "confidence": 0.2, "rule_fired": "llm_unavailable"}
+
+
+def fallback_extract(text: str) -> dict[str, Any]:
+    """Deterministic extraction used when the upstream LLM is unavailable.
+
+    Reuses the stub's labelled-field regex parsing (same semantics, so a
+    genuine duplicate still validates identically) with an explicit
+    llm_unavailable marker and low confidence.
+    """
+    result = _stub_extract(text)
+    return {
+        **result,
+        "confidence": 0.2,
+        "rule_fired": "llm_unavailable",
+        "reasoning": (
+            "LLM upstream unavailable after bounded retries; fields recovered "
+            "deterministically from labelled text — verify before payment. "
+            + result["reasoning"]
+        ),
+    }
+
+
+def _http_post(payload: dict[str, Any], timeout: float) -> tuple[dict, int]:
+    """Single raw attempt against the gateway. No retry logic lives here.
+
+    Raises httpx.HTTPStatusError / httpx.HTTPError on transport or HTTP
+    failure; `_post` classifies retryability. Response bodies are truncated
+    and request headers (API keys) are never included in any error text.
+    """
     url = settings.opencode_base_url.rstrip("/") + _CHAT_ENDPOINT
     t0 = time.time()
-    try:
-        with httpx.Client(timeout=timeout) as client:
-            resp = client.post(url, headers=_headers(), json=payload)
-            resp.raise_for_status()
-            data = resp.json()
-    except httpx.HTTPStatusError as e:
-        body = e.response.text[:500]
-        raise LLMError(f"LLM HTTP {e.response.status_code}: {body}") from e
-    except httpx.HTTPError as e:
-        raise LLMError(f"LLM request failed: {e}") from e
+    with httpx.Client(timeout=timeout) as client:
+        resp = client.post(url, headers=_headers(), json=payload)
+        resp.raise_for_status()
+        data = resp.json()
     elapsed_ms = int((time.time() - t0) * 1000)
     return data, elapsed_ms
+
+
+def _retry_delay(exc: httpx.HTTPError | None, attempt: int) -> float:
+    """Retry-After wins (exact); otherwise exponential backoff + jitter, capped."""
+    if isinstance(exc, httpx.HTTPStatusError):
+        raw = exc.response.headers.get("Retry-After")
+        if raw:
+            try:
+                return min(float(raw), _BACKOFF_CAP_SECONDS)
+            except ValueError:
+                pass
+    base = settings.llm_backoff_base_seconds * (2 ** (attempt - 1))
+    return min(base + random.uniform(0.0, base * 0.25), _BACKOFF_CAP_SECONDS)
+
+
+def _post(payload: dict[str, Any], timeout: float) -> tuple[dict, int]:
+    """Bounded retry wrapper around `_http_post`.
+
+    Retries transient upstream failures only (429, 5xx, timeouts, connection
+    errors) with exponential backoff + jitter, honoring Retry-After. Permanent
+    4xx responses (400/401/403/...) fail fast as LLMError. When the bounded
+    budget is exhausted the call raises LLMUnavailableError so callers can
+    degrade to a deterministic fallback instead of failing the request.
+    """
+    attempts = max(1, settings.llm_max_attempts)
+    last_exc: httpx.HTTPError | None = None
+    for attempt in range(1, attempts + 1):
+        try:
+            return _http_post(payload, timeout)
+        except httpx.HTTPError as e:
+            last_exc = e
+            if isinstance(e, httpx.HTTPStatusError) and not _transient(
+                e.response.status_code
+            ):
+                # Permanent verdict from the gateway: fail fast, never retry.
+                raise LLMError(
+                    f"LLM HTTP {e.response.status_code}: {e.response.text[:500]}"
+                ) from e
+            if attempt >= attempts:
+                break
+            time.sleep(_retry_delay(e, attempt))
+    detail = (
+        f"LLM HTTP {last_exc.response.status_code}: {last_exc.response.text[:200]}"
+        if isinstance(last_exc, httpx.HTTPStatusError)
+        else f"LLM request failed: {last_exc}"
+    )
+    raise LLMUnavailableError(
+        f"LLM upstream unavailable after {attempts} attempt(s): {detail}"
+    ) from last_exc
 
 
 def _extract_content(data: dict) -> str:
@@ -167,7 +261,7 @@ def complete(
     *,
     temperature: float = 0.0,
     max_tokens: int = 2048,
-    timeout: float = 120.0,
+    timeout: float | None = None,
 ) -> tuple[str, int]:
     """Single-turn chat completion. Returns (text, duration_ms)."""
     if settings.llm_stub:
@@ -178,7 +272,7 @@ def complete(
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
-    data, elapsed_ms = _post(payload, timeout)
+    data, elapsed_ms = _post(payload, settings.llm_timeout_seconds if timeout is None else timeout)
     return _extract_content(data), elapsed_ms
 
 
@@ -188,7 +282,7 @@ def complete_json(
     *,
     temperature: float = 0.0,
     max_tokens: int = 4096,
-    timeout: float = 120.0,
+    timeout: float | None = None,
 ) -> tuple[dict, int]:
     """Chat completion constrained to JSON. Returns (parsed_dict, duration_ms)."""
     if settings.llm_stub:
@@ -200,7 +294,7 @@ def complete_json(
         "max_tokens": max_tokens,
         "response_format": {"type": "json_object"},
     }
-    data, elapsed_ms = _post(payload, timeout)
+    data, elapsed_ms = _post(payload, settings.llm_timeout_seconds if timeout is None else timeout)
     text = _extract_content(data)
 
     try:

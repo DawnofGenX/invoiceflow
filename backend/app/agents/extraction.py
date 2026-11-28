@@ -78,20 +78,14 @@ def run(state: dict, db: Session) -> dict:
     try:
         result, duration_ms = llm.complete_json(settings.llm_reasoning_model, messages)
     except llm.LLMError as e:
-        reason = f"Extraction failed: {e}"
-        bus.publish(
-            invoice_id,
-            {"type": "error", "agent": "extraction", "action": "extract_fields", "reasoning": reason},
-        )
-        record_audit(
-            db,
-            invoice_id=invoice_id,
-            agent_name="extraction",
-            action="extract_fields",
-            reasoning=reason,
-            confidence=0.0,
-        )
-        return {"errors": [*state.get("errors", []), reason], "current_step": "extraction"}
+        # Deterministic degradation for ANY upstream failure (retries already
+        # exhausted for transient ones): recover labelled fields from the text
+        # itself (same parsing semantics as the stub, so duplicate/fraud
+        # checks stay consistent), low confidence, llm_unavailable marker.
+        # The request still completes — it never 500s on an upstream outage.
+        result = llm.fallback_extract(raw_text)
+        duration_ms = 0
+        result["reasoning"] = f"{result['reasoning']} (upstream: {e})"
 
     confidence = float(result.get("confidence", 0.0))
     reasoning = str(result.get("reasoning", ""))
@@ -127,6 +121,7 @@ def run(state: dict, db: Session) -> dict:
         agent_name="extraction",
         action="extract_fields",
         reasoning=reasoning,
+        rule_fired=result.get("rule_fired"),
         confidence=confidence,
         input_data={"document_type": doc_type, "raw_text_preview": raw_text[:500]},
         output_data={

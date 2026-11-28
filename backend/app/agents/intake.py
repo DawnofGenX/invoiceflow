@@ -43,20 +43,13 @@ def run(state: dict, db: Session) -> dict:
     try:
         result, duration_ms = llm.complete_json(settings.llm_classify_model, messages)
     except llm.LLMError as e:
-        reason = f"Intake classification failed: {e}"
-        bus.publish(
-            invoice_id,
-            {"type": "error", "agent": "intake", "action": "classify_document", "reasoning": reason},
-        )
-        record_audit(
-            db,
-            invoice_id=invoice_id,
-            agent_name="intake",
-            action="classify_document",
-            reasoning=reason,
-            confidence=0.0,
-        )
-        return {"errors": [*state.get("errors", []), reason], "current_step": "intake"}
+        # Deterministic degradation for ANY upstream failure (retries already
+        # exhausted for transient ones): classify from the text itself, low
+        # confidence, explicit llm_unavailable marker in the audit trail.
+        # The request still completes — it never 500s on an upstream outage.
+        result = llm.fallback_classify(snippet)
+        duration_ms = 0
+        result["reasoning"] = f"{result['reasoning']} (upstream: {e})"
 
     doc_type = str(result.get("document_type", "other")).lower()
     confidence = float(result.get("confidence", 0.0))
@@ -68,6 +61,7 @@ def run(state: dict, db: Session) -> dict:
         agent_name="intake",
         action="classify_document",
         reasoning=reasoning,
+        rule_fired=result.get("rule_fired"),
         confidence=confidence,
         input_data={"raw_text_preview": snippet[:500]},
         output_data={"document_type": doc_type},

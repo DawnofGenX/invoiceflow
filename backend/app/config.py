@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # Offline deterministic stub — no network, used by CI and `pytest`
     llm_stub: bool = False
 
+    # LLM resilience (env-overridable): bounded retries + backoff + per-call timeout
+    llm_max_attempts: int = 3
+    llm_backoff_base_seconds: float = 0.5
+    llm_timeout_seconds: float = 60.0
+
     # Per-agent model routing
     llm_vision_model: str = "deepseek-v4.1-flash"
     llm_reasoning_model: str = "deepseek-v4-pro"
