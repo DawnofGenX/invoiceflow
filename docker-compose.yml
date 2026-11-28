@@ -13,6 +13,10 @@ services:
       TESSERACT_PATH: /usr/bin/tesseract
       CORS_ORIGINS: ${CORS_ORIGINS:-*}
       SECRET_KEY: ${SECRET_KEY:-change-me}
+      # Enables POST /api/maintenance/reset-e2e, which the smoke test uses to
+      # delete its own leftover rows. Empty (the default) leaves the endpoint
+      # disabled entirely (404) — set a value to turn it on.
+      E2E_RESET_TOKEN: ${E2E_RESET_TOKEN:-}
     volumes:
       - invoiceflow-data:/app/data
 

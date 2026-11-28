@@ -35,6 +35,10 @@ class Settings(BaseSettings):
     # Processing thresholds
     low_confidence_threshold: float = 0.7
 
+    # Maintenance endpoints (POST /api/maintenance/reset-e2e) are disabled
+    # unless this is set; callers must present it in the X-E2E-Token header.
+    e2e_reset_token: str = ""
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [o.strip() for o in self.cors_origins.split(",") if o.strip()]

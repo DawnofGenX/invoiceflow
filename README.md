@@ -142,8 +142,16 @@ explainability contract, not just status codes — every audit entry must carry 
 reasoning, a confidence in `[0,1]` and the rule that fired:
 
 ```bash
-python scripts/e2e_smoke.py --base-url http://localhost --verbose   # 63 checks
+python scripts/e2e_smoke.py --base-url http://localhost --verbose   # 63 checks (+1 with the reset enabled)
 ```
+
+The smoke test re-uploads the same fixtures on every run, so it cleans up after itself
+first: fixtures are uploaded under an `e2e-` prefixed name and the harness calls
+`POST /api/maintenance/reset-e2e` before its first upload. That endpoint only exists
+when `E2E_RESET_TOKEN` is set (it then requires the same token in the `X-E2E-Token`
+header); without it the endpoint returns `404` and the reset is skipped. Set
+`INVOICEFLOW_E2E_RESET_TOKEN` in your shell to the same value to enable it. It deletes
+only harness-owned rows — never seeded demo data, never real uploads. See `DEPLOY.md`.
 
 CI (`.github/workflows/ci.yml`) runs the pytest suite, `npm run build`, and builds both
 Docker images on every push.

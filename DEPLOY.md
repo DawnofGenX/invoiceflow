@@ -112,7 +112,38 @@ python3 scripts/e2e_smoke.py --base-url http://<vm-public-ip> --verbose
 contract (every audit entry has non-empty reasoning, a confidence in [0,1] and a
 `rule_fired` where a rule decided) across all five sample documents, plus batch upload,
 the transparency summary, vendor history, list filters and the approval round-trip.
-Expect `63/63 checks passed`.
+Expect `63/63 checks passed` — `64/64` once the reset endpoint is enabled (the extra
+check is the reset itself).
+
+#### Repeated runs need `E2E_RESET_TOKEN`
+
+Every smoke run uploads the same five fixtures. Left in place, the second run's fixtures
+collide with the first run's copies — the duplicate detector fires on the fixture
+itself, so the invoice lands in `needs_review` instead of `payment_scheduled`. That is
+the product behaving correctly; the harness is what has to clean up after itself.
+
+The smoke test therefore uploads every fixture under an `e2e-` prefixed name and calls
+`POST /api/maintenance/reset-e2e` before its first upload. That endpoint is **disabled
+unless `E2E_RESET_TOKEN` is set** — with it unset the endpoint returns `404` and the
+smoke test skips the reset (the first run still passes; later ones will not).
+
+On the VM:
+
+```bash
+# 1. generate a token and put it in the VM's .env
+python3 -c "import secrets; print(secrets.token_urlsafe(32))"
+echo "E2E_RESET_TOKEN=<token>" >> /path/to/invoiceflow/.env
+docker compose up -d --force-recreate backend
+
+# 2. run the smoke test with the SAME token in your shell
+export INVOICEFLOW_E2E_RESET_TOKEN=<token>
+python3 scripts/e2e_smoke.py --base-url http://<vm-public-ip> --verbose
+```
+
+The endpoint only ever deletes rows whose stored upload name starts with `e2e-` (plus
+the five legacy `sample-*.pdf` names uploaded before the prefix existed). Seeded demo
+data and real uploads are never touched. Without the token the endpoint does not exist;
+with a wrong token it returns `403`.
 
 ### 6. Domain
 

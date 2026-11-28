@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 import time
 import urllib.error
@@ -45,6 +46,30 @@ EXPECTATIONS = {
     # a non-invoice is short-circuited by intake: fewer entries is correct, not a bug
     "sample-contract.pdf": ("rejected", "not_an_invoice", 2),
 }
+
+# Upload-name prefix owned by this harness. The maintenance endpoint deletes only
+# rows whose stored upload name starts with it, so the smoke test can clean up
+# after itself without touching real uploads or the seeded demo data.
+OWNED_PREFIX = "e2e-"
+
+# Legacy fixture names uploaded before the prefix existed. They are harness
+# artifacts too, and are cleaned up by the same reset.
+LEGACY_FIXTURE_NAMES = (
+    "sample-clean.pdf",
+    "sample-new-vendor.pdf",
+    "sample-duplicate.pdf",
+    "sample-high-value.pdf",
+    "sample-contract.pdf",
+)
+
+# Token for POST /api/maintenance/reset-e2e. Read from the environment so the
+# secret never lives in the repo.
+RESET_TOKEN_ENV = "INVOICEFLOW_E2E_RESET_TOKEN"
+
+
+def _owned_name(filename: str) -> str:
+    """Return the upload name used for a fixture — always harness-owned."""
+    return f"{OWNED_PREFIX}{filename}"
 
 RESULTS: list[tuple[str, bool, str]] = []
 
@@ -89,7 +114,10 @@ def upload(base: str, path: Path) -> dict | None:
     body = b"".join(
         [
             f"--{boundary}\r\n".encode(),
-            f'Content-Disposition: form-data; name="file"; filename="{path.name}"\r\n'.encode(),
+            (
+                f'Content-Disposition: form-data; name="file"; '
+                f'filename="{_owned_name(path.name)}"\r\n'
+            ).encode(),
             b"Content-Type: application/pdf\r\n\r\n",
             path.read_bytes(),
             f"\r\n--{boundary}--\r\n".encode(),
@@ -118,7 +146,10 @@ def upload_many(base: str, paths: list[Path]) -> tuple[int, dict | None]:
     for path in paths:
         chunks.append(f"--{boundary}\r\n".encode())
         chunks.append(
-            f'Content-Disposition: form-data; name="files"; filename="{path.name}"\r\n'.encode()
+            (
+                f'Content-Disposition: form-data; name="files"; '
+                f'filename="{_owned_name(path.name)}"\r\n'
+            ).encode()
         )
         chunks.append(b"Content-Type: application/pdf\r\n\r\n")
         chunks.append(path.read_bytes())
@@ -137,6 +168,27 @@ def upload_many(base: str, paths: list[Path]) -> tuple[int, dict | None]:
         return status, None
 
 
+def reset_harness_artifacts(base: str, timeout: int = 60) -> tuple[int, str]:
+    """Ask the server to delete artifacts left by previous smoke runs.
+
+    Without this, each run's fixtures collide with the previous run's copies and
+    the duplicate-detection rule fires on the fixture itself. Returns
+    (http_status, detail) — a 404 means the endpoint is disabled on that
+    instance, which is a legitimate configuration, not an error.
+    """
+    token = os.environ.get(RESET_TOKEN_ENV, "")
+    if not token:
+        return 0, f"no token in ${RESET_TOKEN_ENV}; skipping reset"
+    status, raw = req(
+        base,
+        "/api/maintenance/reset-e2e",
+        method="POST",
+        headers={"X-E2E-Token": token},
+        timeout=timeout,
+    )
+    return status, raw[:300].decode("utf-8", "replace")
+
+
 def wait_terminal(base: str, invoice_id: str, timeout: float = 180.0) -> dict | None:
     deadline = time.time() + timeout
     last: dict | None = None
@@ -152,6 +204,17 @@ def wait_terminal(base: str, invoice_id: str, timeout: float = 180.0) -> dict | 
 
 def run(base: str, samples: Path) -> int:
     print(f"InvoiceFlow E2E smoke → {base}")
+
+    print("\n[0] reset harness artifacts")
+    status, detail = reset_harness_artifacts(base)
+    if status == 200:
+        check("POST /api/maintenance/reset-e2e", True, detail)
+    elif status == 404:
+        print(f"  [skip] reset endpoint disabled on this instance ({detail})")
+    elif status == 0:
+        print(f"  [skip] {detail}")
+    else:
+        check("POST /api/maintenance/reset-e2e", False, f"HTTP {status} {detail}")
 
     print("\n[1] health")
     status, health = get_json(base, "/api/health", timeout=30)
