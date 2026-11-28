@@ -285,7 +285,7 @@ export default function IntakePage() {
           )}
         </div>
 
-        <aside className="border border-rule bg-print-2/50 px-4 py-3">
+        <aside className="self-start border border-rule bg-print-2/50 px-4 py-3">
           <p className="micro">What happens next</p>
           <ol className="mt-2 space-y-2 text-[11.5px] leading-[1.5] text-ink-mute">
             <li>
