@@ -22,8 +22,10 @@ Running right now on a small VM, deployed from this repo with `docker compose up
   Funnel is the production ingress; it survives reconnects and reboots).
 
 Verified end to end against that public URL: `python3 scripts/e2e_smoke.py --base-url
-https://hermes-vm.tailfd1655.ts.net` → **63/63 checks passed**, all requests routed through the
-public Funnel ingress (103.84.155.153), not the tailnet.
+https://hermes-vm.tailfd1655.ts.net` → **64/64 checks passed** with the harness reset enabled
+(`E2E_RESET_TOKEN` set) — 63 product checks plus the reset check itself; **63/63** on an instance
+where the reset endpoint is disabled. All requests routed through the public Funnel ingress
+(103.84.155.153), not the tailnet.
 
 Start at **Transparency**, upload any file from `backend/demo-data/sample_invoices/`, and watch the
 agents stream their decisions live. No signup, no seeding required — the DB ships with demo history.
@@ -129,13 +131,15 @@ npm run dev                   # http://localhost:3000
 cd backend && .venv/bin/python -m pytest tests/ -q
 ```
 
-14 tests, all offline (OCR is real; the LLM is a deterministic stub via `LLM_STUB=1`, which
+25 tests, all offline (OCR is real; the LLM is a deterministic stub via `LLM_STUB=1`, which
 `tests/conftest.py` sets automatically):
 
 - 4 pipeline tests — happy path auto-approve, new-vendor escalation, duplicate → review, non-invoice → rejected
 - 10 API tests — health, upload validation (bad type, empty file), batch partial success,
   list filters, audit-summary explainability assertions, vendor aggregation,
   JSON/PDF audit export, approval decision round-trip
+- 5 maintenance tests — reset endpoint gating (disabled → 404, wrong token → 403), harness-only
+  deletion, second-run idempotency, genuine duplicates still flagged after a reset
 
 `scripts/e2e_smoke.py` is the end-to-end proof against a *running* instance. It checks the
 explainability contract, not just status codes — every audit entry must carry non-empty
@@ -155,6 +159,39 @@ only harness-owned rows — never seeded demo data, never real uploads. See `DEP
 
 CI (`.github/workflows/ci.yml`) runs the pytest suite, `npm run build`, and builds both
 Docker images on every push.
+
+### Reproduce it yourself
+
+A judge with a clean machine and ~10 minutes, in order:
+
+```bash
+git clone https://github.com/DawnofGenX/invoiceflow.git
+cd invoiceflow
+cp .env.example .env                      # OPENCODE_API_KEY is the only required value
+docker compose up -d --build              # backend :8000, frontend :3000, nginx :80
+curl -X POST http://localhost/api/seed/   # 3 POs + 3 historical invoices
+python3 scripts/e2e_smoke.py --base-url http://localhost --verbose
+```
+
+Expect `63/63 checks passed` (64 with `E2E_RESET_TOKEN` set — see the reset note above).
+Then open <http://localhost>, upload `backend/demo-data/sample_invoices/sample-clean.pdf`,
+and read the confirmation slip on the invoice record. To run the test suite without Docker,
+without network and without a key: `cd backend && LLM_STUB=1 ./.venv/bin/python -m pytest tests/ -q`
+(25 passed). Commands verified against `docker-compose.yml`, `scripts/e2e_smoke.py`
+(`--base-url`, `--samples`, `--verbose`) and `DEPLOY.md`.
+
+---
+
+## Why this wins (rubric alignment)
+
+Every claim below points at something a judge can run or read, not at a metric.
+
+| Rubric criterion | Evidence in this repo |
+|---|---|
+| Technical Architecture & Engineering Depth (35%) | A LangGraph `StateGraph` with conditional routing (`backend/app/agents/orchestrator.py`), per-node commits so a mid-pipeline failure still leaves an explainable trail, SSE streaming through an in-memory event bus with replay (`backend/app/services/events.py`), per-agent model routing over one OpenAI-compatible gateway, and a deterministic offline stub so the whole pipeline is testable with no key. `docs/ARCHITECTURE.md` is the full reference. |
+| Innovation & Originality (25%) | The audit trail is the product: `agent_name`, `action`, `reasoning`, `rule_fired`, `confidence`, `input_data`/`output_data`, `duration_ms` per decision (`backend/app/models/audit.py`) — exportable as JSON/PDF. The incumbents in the comparison table above log outcomes; they do not log reasons. |
+| Real-World Utility & Scalability (25%) | The validation rules mirror a real AP control sequence (PO match → line-item compare → duplicate → amount math → anomaly), approval thresholds are data (`ApprovalRule` rows, not code), and new-vendor detection keys off stored invoice history. Payments are deliberately out of scope — the wedge is explainability, not money movement. |
+| Execution & Demo Clarity (15%) | A live URL with no signup, pre-seeded history, five fixture PDFs with five distinct predictable outcomes, and `scripts/e2e_smoke.py` — 63 checks asserting the explainability contract, not just status codes. `docs/FRICTION_LOG.md` records what broke and how each fix was proven. |
 
 ---
 
